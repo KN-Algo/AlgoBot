@@ -1,0 +1,12 @@
+[package]
+name = "algobot"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+serenity = { default-features = false, features = ["client", "gateway", "rustls_backend", "model", "cache"], version = "*" }
+tokio = { features = ["macros", "rt-multi-thread"], version = "*"}
+reqwest = "*"
+clokwerk = "*"
