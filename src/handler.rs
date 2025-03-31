@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-//use std::sync::{Arc, Mutex};
 
 use serenity::{
     all::{
@@ -24,10 +23,10 @@ impl Handler {
     }
 
     pub fn register_command<C: BotCommand + Sync + Send + 'static>(
-        &mut self,
+        mut self,
         name: &'static str,
         command: C,
-    ) -> &mut Self {
+    ) -> Self {
         self.registered_commands.insert(name, Box::new(command));
         self
     }

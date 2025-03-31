@@ -14,9 +14,7 @@ async fn main() {
     log!("Starting the bot!");
     let token = std::env::var("DISCORD_TOKEN").expect("DISCORD_TOKEN not set");
     let intents = GatewayIntents::non_privileged() | GatewayIntents::MESSAGE_CONTENT;
-    let mut handler = Handler::new();
-
-    handler
+    let handler = Handler::new()
         .register_command("ping", Ping)
         .register_command("modal_test", ModalTest);
 
@@ -26,7 +24,8 @@ async fn main() {
             c
         }
         Err(e) => {
-            panic!("There was an error starting the client!\n{e}");
+            log_error!("There was an error starting the client!\n{e}");
+            return;
         }
     };
 
