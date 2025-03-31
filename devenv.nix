@@ -1,11 +1,26 @@
 { pkgs, lib, config, inputs, ... }:
-
+let
+  pkgs-unstable = import inputs.nixpkgs-unstable { system = pkgs.stdenv.system; };
+in
 {
-  packages = with pkgs; [ git pkg-config openssl bashInteractive ];
+  packages = with pkgs; [ bashInteractive ];
 
-  languages.rust = {
-    enable = true;
+  languages = {
+    rust = {
+      enable = true;
+      toolchain = {
+        cargo = pkgs-unstable.cargo;
+        rustc = pkgs-unstable.rustc;
+        clippy = pkgs-unstable.clippy;
+        rust-analyzer = pkgs-unstable.rust-analyzer;
+        rustfmt = pkgs-unstable.rustfmt;
+      };
+    };
   };
 
-  processes.bot.exec = "./target/debug/algobot";
+  enterShell = ''
+  export DISCORD_TOKEN=$(cat token)
+  '';
+
+  processes.bot.exec = "./target/debug/algo-bot";
 }

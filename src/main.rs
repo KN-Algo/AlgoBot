@@ -1,27 +1,36 @@
+use handler::Handler;
 use serenity::{all::GatewayIntents, Client};
 
-fn read_token() -> Result<String, std::io::Error> {
-    std::fs::read_to_string("token")
-}
+pub mod bot_command;
+pub mod commands;
+pub mod err;
+pub mod handler;
+pub mod log;
+
+use crate::commands::*;
 
 #[tokio::main]
-async fn main() -> serenity::Result<()> {
-    let token = match read_token() {
-        Ok(t) => t,
-        Err(e) => panic!("Couldn't read token! {e}"),
+async fn main() {
+    log!("Starting the bot!");
+    let token = std::env::var("DISCORD_TOKEN").expect("DISCORD_TOKEN not set");
+    let intents = GatewayIntents::non_privileged() | GatewayIntents::MESSAGE_CONTENT;
+    let mut handler = Handler::new();
+
+    handler
+        .register_command("ping", Ping)
+        .register_command("modal_test", ModalTest);
+
+    let mut client = match Client::builder(token, intents).event_handler(handler).await {
+        Ok(c) => {
+            log!("Client created!");
+            c
+        }
+        Err(e) => {
+            panic!("There was an error starting the client!\n{e}");
+        }
     };
 
-    match serenity::utils::validate_token(&token) {
-        Ok(_) => (),
-        Err(e) => panic!("Invalid token!: {e}"),
-    };
-
-    let intents = GatewayIntents::GUILD_MESSAGES
-        | GatewayIntents::GUILD_MESSAGE_REACTIONS
-        | GatewayIntents::MESSAGE_CONTENT;
-
-    let mut client = Client::builder(token, intents).await?;
-
-    client.start().await?;
-    Ok(())
+    if let Err(e) = client.start().await {
+        panic!("Client error: {e}");
+    }
 }
