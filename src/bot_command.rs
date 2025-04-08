@@ -3,7 +3,7 @@ use serenity::{
     async_trait,
 };
 
-use crate::err::BotError;
+use crate::response::Response;
 
 #[async_trait]
 pub trait BotCommand {
@@ -12,5 +12,5 @@ pub trait BotCommand {
         &self,
         ctx: &Context,
         interaction: &CommandInteraction,
-    ) -> Result<String, BotError>;
+    ) -> serenity::Result<Response>;
 }

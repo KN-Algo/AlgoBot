@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use serenity::builder::Builder;
 use serenity::{
     all::{
         Command, CommandInteraction, Context, CreateInteractionResponse,
@@ -31,20 +32,24 @@ impl Handler {
         self
     }
 
-    async fn handle_command(&self, ctx: &Context, command: &CommandInteraction) {
-        let content = match self.registered_commands.get(command.data.name.as_str()) {
+    async fn handle_command(&self, ctx: &Context, command: CommandInteraction) {
+        let response = match self.registered_commands.get(command.data.name.as_str()) {
             Some(c) => match c.run(ctx, &command).await {
                 Ok(s) => s,
                 Err(e) => {
                     log_error!("Error running command {}! : {e}", command.data.name);
-                    "Error running command".into()
+                    return;
                 }
             },
-            None => "Command not found".into(),
+            None => {
+                log_error!("User {} run a non existing command!", command.user.name);
+                return;
+            }
         };
-        let msg = CreateInteractionResponseMessage::new().content(content);
-        match command
-            .create_response(ctx, CreateInteractionResponse::Message(msg))
+
+        let msg = CreateInteractionResponseMessage::new().content(response.msg);
+        match CreateInteractionResponse::Message(msg)
+            .execute(ctx, (response.interaction_id, &response.token))
             .await
         {
             Ok(()) => (),
@@ -52,52 +57,39 @@ impl Handler {
         }
     }
 
-    async fn error(ctx: &Context, interaction: &Interaction, err: &str) {
-        let msg = CreateInteractionResponseMessage::new().content(err);
-        match interaction {
-            Interaction::Command(c) => {
-                match c
-                    .create_response(ctx, CreateInteractionResponse::Message(msg))
-                    .await
-                {
-                    Ok(()) => (),
-                    Err(e) => log_error!("Error sending msg: {e}"),
-                }
-            }
-            Interaction::Ping(_) => (),
-            Interaction::Autocomplete(_) => (),
-            Interaction::Modal(_) => (),
-            Interaction::Component(_) => (),
-            &_ => (),
-        }
-    }
+    //async fn error(ctx: &Context, interaction: &Interaction, err: &str) {
+    //    let msg = CreateInteractionResponseMessage::new().content(err);
+    //    match interaction {
+    //        Interaction::Command(c) => {
+    //            match c
+    //                .create_response(ctx, CreateInteractionResponse::Message(msg))
+    //                .await
+    //            {
+    //                Ok(()) => (),
+    //                Err(e) => log_error!("Error sending msg: {e}"),
+    //            }
+    //        }
+    //        Interaction::Ping(_) => (),
+    //        Interaction::Autocomplete(_) => (),
+    //        Interaction::Modal(_) => (),
+    //        Interaction::Component(_) => (),
+    //        &_ => (),
+    //    }
+    //}
 }
 
 #[async_trait]
 impl EventHandler for Handler {
     async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
         match interaction {
-            Interaction::Command(command) => self.handle_command(&ctx, &command).await,
+            Interaction::Command(command) => self.handle_command(&ctx, command).await,
+            Interaction::Modal(_) => (),
             //Interaction::Autocomplete(_) => (),
-            _ => Self::error(&ctx, &interaction, "Interaction not supported").await,
+            _ => (), //Self::error(&ctx, &interaction, "Interaction not supported").await,
         }
     }
 
     async fn ready(&self, ctx: Context, _ready: Ready) {
-        //use crate::comm::*;
-        //macro_rules! register_commands (
-        //    {$($t:ident),+} => {
-        //            $(
-        //                match Command::create_global_command(&ctx, $t::register()).await {
-        //                    Ok(c) => log!("Command {} registered!", c.name),
-        //                    Err(e) => log_error!("Error registering command {e}")
-        //                }
-        //            )+
-        //    };
-        //);
-
-        //register_commands!(ping, modal_test);
-
         for (_, command) in &self.registered_commands {
             match Command::create_global_command(&ctx, command.register()).await {
                 Ok(c) => log!("Command \"{}\" registered!", c.name),

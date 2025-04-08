@@ -3,9 +3,11 @@ use serenity::{all::GatewayIntents, Client};
 
 pub mod bot_command;
 pub mod commands;
-pub mod err;
+//pub mod err;
 pub mod handler;
 pub mod log;
+pub mod modal;
+pub mod response;
 
 use crate::commands::*;
 

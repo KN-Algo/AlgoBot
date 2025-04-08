@@ -1,5 +1,6 @@
+use crate::bot_command::BotCommand;
 use crate::log;
-use crate::{bot_command::BotCommand, err::BotError};
+use crate::response::Response;
 use serenity::all::{CommandInteraction, Context, CreateCommand};
 use serenity::async_trait;
 
@@ -7,9 +8,9 @@ pub struct Ping;
 
 #[async_trait]
 impl BotCommand for Ping {
-    async fn run(&self, _: &Context, command: &CommandInteraction) -> Result<String, BotError> {
+    async fn run(&self, _: &Context, command: &CommandInteraction) -> serenity::Result<Response> {
         log!("{} pinged", command.user.tag());
-        Ok("pong".to_string())
+        Ok(Response::from_command(command, "pong!"))
     }
 
     fn register(&self) -> CreateCommand {

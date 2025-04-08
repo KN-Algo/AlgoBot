@@ -22,6 +22,7 @@ name = "algo-bot"
 version = "0.1.0"
 dependencies = [
  "chrono",
+ "modal_macro",
  "serenity",
  "sqlx",
  "tokio",
@@ -1068,6 +1069,15 @@ dependencies = [
  "libc",
  "wasi 0.11.0+wasi-snapshot-preview1",
  "windows-sys 0.52.0",
+]
+
+[[package]]
+name = "modal_macro"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]

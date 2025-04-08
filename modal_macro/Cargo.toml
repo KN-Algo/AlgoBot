@@ -1,0 +1,12 @@
+[package]
+name = "modal_macro"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+syn = { features = ["full"], version="2.0.100"}
+quote = "1.0.40"
+proc-macro2 = "*"
+
+[lib]
+proc-macro = true
