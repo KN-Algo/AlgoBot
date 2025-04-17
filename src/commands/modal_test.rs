@@ -1,30 +1,25 @@
 use crate::bot_command::BotCommand;
-use crate::modal::Modal;
-use crate::response::ModalResponse;
+use crate::modal;
+use crate::response::Interaction;
+use crate::response::Respond;
 use crate::response::Response;
-use serenity::{
-    all::{CommandInteraction, Context, CreateCommand},
-    async_trait,
-};
+use serenity::{all::CreateCommand, async_trait};
 
 pub struct ModalTest;
 
-#[derive(Modal)]
-#[modal("Test", 600)]
-struct TestModal {
-    #[short_field("The Mog")]
-    the_mog: String,
-    #[paragraph_field("Imposter")]
-    impostor: String,
+modal! {
+    CoolModal("Test Modal", 1200) {
+        testfield => short_field("name"),
+        testfield1 => short_field("email"),
+    }
 }
 
 #[async_trait]
 impl BotCommand for ModalTest {
-    async fn run(&self, ctx: &Context, command: &CommandInteraction) -> serenity::Result<Response> {
-        let (modal, response) = TestModal::execute(ctx, command.id, &command.token).await?;
-        let s = format!("{:?} {:?}", modal.the_mog, modal.impostor);
-
-        Ok(Response::from_modal(response, s))
+    async fn run(&self, interaction: Interaction<'async_trait>) -> serenity::Result<Response> {
+        let modal = interaction.modal::<CoolModal>().await?;
+        let s = format!("{:?} {:?}", modal.testfield, modal.testfield1);
+        modal.respond(s)
     }
 
     fn register(&self) -> CreateCommand {

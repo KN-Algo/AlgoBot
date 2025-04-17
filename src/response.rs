@@ -1,30 +1,63 @@
-use serenity::all::{CommandInteraction, InteractionId};
+use serenity::all::{
+    CommandInteraction, Context, InteractionId, ModalInteraction, PartialChannel, User,
+};
 
-pub struct ModalResponse {
-    pub id: InteractionId,
-    pub token: String,
-}
+use crate::modal::Modal;
 
 pub struct Response {
-    pub msg: String,
-    pub interaction_id: InteractionId,
+    pub id: InteractionId,
     pub token: String,
+    pub msg: String,
 }
 
-impl Response {
-    pub fn from_command(command: &CommandInteraction, msg: impl Into<String>) -> Self {
+pub trait Respond {
+    fn respond(self, msg: impl Into<String>) -> serenity::Result<Response>;
+}
+
+pub struct Interaction<'ctx> {
+    ctx: &'ctx Context,
+    pub id: InteractionId,
+    pub token: String,
+    pub name: String,
+    pub user: User,
+    pub channel: Option<PartialChannel>,
+}
+
+impl<'ctx> Interaction<'ctx> {
+    pub fn from_command(ctx: &'ctx Context, cmd: &CommandInteraction) -> Self {
         Self {
-            msg: msg.into(),
-            interaction_id: command.id,
-            token: command.token.clone(),
+            ctx,
+            id: cmd.id,
+            token: cmd.token.clone(),
+            name: cmd.data.name.clone(),
+            user: cmd.user.clone(),
+            channel: cmd.channel.clone(),
         }
     }
 
-    pub fn from_modal(modal_response: ModalResponse, msg: impl Into<String>) -> Self {
+    pub fn from_modal(ctx: &'ctx Context, modal: ModalInteraction) -> Self {
         Self {
-            msg: msg.into(),
-            interaction_id: modal_response.id,
-            token: modal_response.token,
+            ctx,
+            id: modal.id,
+            token: modal.token,
+            name: "".to_owned(),
+            user: modal.user,
+            channel: modal.channel,
         }
+    }
+
+    pub async fn modal<T: Modal<'ctx>>(self) -> serenity::Result<T> {
+        let modal = T::execute(self.ctx, self.id, &self.token).await?;
+        Ok(modal)
+    }
+}
+
+impl Respond for Interaction<'_> {
+    fn respond(self, msg: impl Into<String>) -> serenity::Result<Response> {
+        Ok(Response {
+            id: self.id,
+            token: self.token.clone(),
+            msg: msg.into(),
+        })
     }
 }

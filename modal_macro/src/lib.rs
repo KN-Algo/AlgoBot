@@ -96,19 +96,19 @@ pub fn modal_derive(input: TokenStream) -> TokenStream {
 
     let code = quote! {
         #[async_trait]
-        impl Modal for #name {
-            async fn execute(ctx: &::serenity::all::Context, id: ::serenity::all::InteractionId, token: &::std::primitive::str) -> serenity::Result<(Self, ModalResponse)> {
+        impl<'ctx> crate::modal::Modal<'ctx> for #name<'ctx> {
+            async fn execute(ctx: &'ctx ::serenity::all::Context, id: ::serenity::all::InteractionId, token: &::std::primitive::str) -> ::serenity::Result<Self> {
 
-                let mut modal = serenity::all::CreateQuickModal::new(#title)
+                let mut modal = ::serenity::all::CreateQuickModal::new(#title)
                     .timeout(::std::time::Duration::from_secs(#timeout))
                     #(#add_fields)*;
 
                 let response = match modal.execute(ctx, id, token).await? {
                     Some(r) => r,
-                    None => return Err(serenity::Error::Other("sus")),
+                    None => return Err(::serenity::Error::Other("sus")),
                 };
 
-                Ok((Self { #other }, ModalResponse { id: response.interaction.id, token: response.interaction.token }))
+                Ok(Self { interaction: crate::response::Interaction::from_modal(ctx, response.interaction), #other })
             }
         }
     };

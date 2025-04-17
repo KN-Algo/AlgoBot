@@ -3,63 +3,34 @@ use serenity::{
     async_trait,
 };
 
-pub use crate::response::ModalResponse;
 pub use modal_macro::Modal;
 
 #[async_trait]
-pub trait Modal
+pub trait Modal<'ctx>
 where
     Self: Sized,
 {
-    async fn execute(
-        ctx: &Context,
-        id: InteractionId,
-        token: &str,
-    ) -> serenity::Result<(Self, ModalResponse)>;
+    async fn execute(ctx: &'ctx Context, id: InteractionId, token: &str) -> serenity::Result<Self>;
 }
 
-//
-//pub struct ModalResponse {
-//    fields: HashMap<String, String>,
-//    pub interaction_id: InteractionId,
-//    pub token: String,
-//}
-//
-//pub struct Modal {
-//    title: String,
-//    fields: Vec<Field>,
-//    timeout: Duration,
-//}
-//
-//
-//    //bad clones
-//    pub async fn execute(
-//        self,
-//        ctx: &Context,
-//        interaction_id: InteractionId,
-//        token: &str,
-//    ) -> serenity::Result<Option<ModalResponse>> {
-//        let mut modal = CreateQuickModal::new(self.title).timeout(self.timeout);
-//        let mut map: HashMap<String, String> = HashMap::new();
-//        for field in &self.fields {
-//            modal = match field.field_type {
-//                FieldType::Short => modal.short_field(field.name.clone()),
-//                FieldType::Paragraph => modal.paragraph_field(field.name.clone()),
-//            };
-//        }
-//        let response = match modal.execute(ctx, interaction_id, token).await? {
-//            Some(r) => r,
-//            None => return Ok(None),
-//        };
-//
-//        for (i, field) in response.inputs.iter().enumerate() {
-//            map.insert(self.fields[i].name.clone(), field.clone());
-//        }
-//
-//        Ok(Some(ModalResponse {
-//            fields: map,
-//            interaction_id: response.interaction.id,
-//            token: response.interaction.token,
-//        }))
-//    }
-//}
+#[macro_export]
+macro_rules! modal {
+    ($struct_name:ident($modal_name:literal, $modal_time:literal) { $($field_name:ident => $field_type:ident($field_title:literal), )+ }) => {
+        #[derive($crate::modal::Modal)]
+        #[modal($modal_name, $modal_time)]
+        struct $struct_name<'ctx> {
+            interaction: crate::response::Interaction<'ctx>,
+            $(
+                #[$field_type($field_title)]
+                $field_name: String,
+            )+
+
+        }
+
+        impl<'ctx> crate::response::Respond for $struct_name<'ctx> {
+            fn respond(self, msg: impl Into<String>) -> ::serenity::Result<crate::response::Response> {
+                Ok(crate::response::Response { id: self.interaction.id, token: self.interaction.token.clone(), msg: msg.into() })
+            }
+        }
+    };
+}
