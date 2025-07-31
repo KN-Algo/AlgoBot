@@ -1,28 +1,44 @@
-use crate::bot_command::BotCommand;
-use crate::modal;
-use crate::response::Interaction;
-use crate::response::Respond;
-use crate::response::Response;
-use serenity::{all::CreateCommand, async_trait};
+use crate::log;
+use crate::traits::BotCommand;
+use crate::traits::Modal;
+use modal_macro::modal;
+use serenity::{
+    all::{CommandInteraction, Context, CreateCommand},
+    async_trait,
+};
 
 pub struct ModalTest;
 
 modal! {
-    CoolModal("Test Modal", 1200) {
-        testfield => short_field("name"),
-        testfield1 => short_field("email"),
-    }
+    <CoolModal title="Title" duration=600>
+        <row>
+            <input
+                id="name"
+                style="short"
+                placeholder="your name"
+                min_len=10
+                max_len=125>"name"</input>
+        </row>
+        <row>
+            <input id="email" style="paragraph"
+            placeholder="a really long email">"email"</input>
+        </row>
+    </CoolModal>
 }
 
 #[async_trait]
 impl BotCommand for ModalTest {
-    async fn run(&self, interaction: Interaction<'async_trait>) -> serenity::Result<Response> {
-        let modal = interaction.modal::<CoolModal>().await?;
-        let s = format!("{:?} {:?}", modal.testfield, modal.testfield1);
-        modal.respond(s)
+    async fn run(
+        &self,
+        ctx: &Context,
+        interaction: CommandInteraction,
+    ) -> Result<(), serenity::Error> {
+        let modal = CoolModal::execute(ctx, &interaction).await?;
+        log!("Modal results {:?} {:?}", modal.name, modal.email);
+        Ok(())
     }
 
-    fn register(&self) -> CreateCommand {
-        CreateCommand::new("modal_test").description("Modal Test")
+    fn register(&self, create: CreateCommand) -> CreateCommand {
+        create.description("Command to test Modals")
     }
 }

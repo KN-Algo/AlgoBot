@@ -1,20 +1,28 @@
-use crate::bot_command::BotCommand;
-use crate::log;
-use crate::response::Respond;
-use crate::response::{Interaction, Response};
-use serenity::all::CreateCommand;
-use serenity::async_trait;
+use serenity::{
+    all::{
+        CommandInteraction, Context, CreateCommand, CreateInteractionResponse,
+        CreateInteractionResponseMessage,
+    },
+    async_trait,
+};
+
+use crate::traits::bot_command::BotCommand;
 
 pub struct Ping;
 
 #[async_trait]
 impl BotCommand for Ping {
-    async fn run(&self, interaction: Interaction<'async_trait>) -> serenity::Result<Response> {
-        log!("{} pinged", interaction.user.tag());
-        interaction.respond("pong!")
+    async fn run(
+        &self,
+        ctx: &Context,
+        interaction: CommandInteraction,
+    ) -> Result<(), serenity::Error> {
+        let msg = CreateInteractionResponseMessage::new().content("pong!");
+        let builder = CreateInteractionResponse::Message(msg);
+        interaction.create_response(ctx, builder).await
     }
 
-    fn register(&self) -> CreateCommand {
-        CreateCommand::new("ping").description("Send ping")
+    fn register(&self, create: CreateCommand) -> CreateCommand {
+        create.description("Check if the bot is responding")
     }
 }
