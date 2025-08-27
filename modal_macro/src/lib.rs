@@ -23,12 +23,12 @@ pub fn interactive_msg(input: proc_macro::TokenStream) -> proc_macro::TokenStrea
         match &row.component {
             RowComponent::Input(i) => { 
                 let ident = Ident::new(&format!("handle_{}", i.id.value()), Span::call_site());
-                quote! { async fn #ident(_ctx: &::serenity::all::Context, _interaction: &::serenity::all::ComponentInteraction, _msg: &mut crate::components::InteractiveMessage) -> Result<(), ::serenity::Error> { Ok(()) } }
+                quote! { async fn #ident(_ctx: &::serenity::all::Context, _interaction: &::serenity::all::ComponentInteraction, _msg: &mut crate::components::InteractiveMessage, db: &::sqlx::SqlitePool) -> Result<(), ::serenity::Error> { Ok(()) } }
             }
             RowComponent::SelectMenu(s) => {
                 let options = s.options.iter().map(|option| {
                     let ident = Ident::new(&format!("handle_{}", option.id.value()), Span::call_site());
-                    quote! { async fn #ident(_ctx: &::serenity::all::Context, _interaction: &::serenity::all::ComponentInteraction, _msg: &mut crate::components::InteractiveMessage) -> Result<(), ::serenity::Error> { Ok(()) } }
+                    quote! { async fn #ident(_ctx: &::serenity::all::Context, _interaction: &::serenity::all::ComponentInteraction, _msg: &mut crate::components::InteractiveMessage, db: &::sqlx::SqlitePool) -> Result<(), ::serenity::Error> { Ok(()) } }
                 });
 
                 quote! { #(#options)* }
@@ -36,7 +36,7 @@ pub fn interactive_msg(input: proc_macro::TokenStream) -> proc_macro::TokenStrea
             RowComponent::Buttons(b) => {
                 let buttons = b.iter().map(|button| {
                     let ident = Ident::new(&format!("handle_{}", button.id.value()), Span::call_site());
-                    quote! { async fn #ident(_ctx: &::serenity::all::Context, _interaction: &::serenity::all::ComponentInteraction, _msg: &mut crate::components::InteractiveMessage) -> Result<(), ::serenity::Error> { Ok(()) } }
+                    quote! { async fn #ident(_ctx: &::serenity::all::Context, _interaction: &::serenity::all::ComponentInteraction, _msg: &mut crate::components::InteractiveMessage, db: &::sqlx::SqlitePool) -> Result<(), ::serenity::Error> { Ok(()) } }
                 });
 
                 quote! { #(#buttons)* }
@@ -49,14 +49,14 @@ pub fn interactive_msg(input: proc_macro::TokenStream) -> proc_macro::TokenStrea
             RowComponent::Input(i) => {
                 let id = i.id.value();
                 let ident = Ident::new(&format!("handle_{}", id), Span::call_site());
-                quote! { #id => Handler::#ident(ctx, interaction, msg).await?, }
+                quote! { #id => Handler::#ident(ctx, interaction, msg, db).await?, }
             }
             RowComponent::Buttons(b) => {
                 let buttons = b.iter().map(|button| {
                     let id = button.id.value();
                     let ident = Ident::new(&format!("handle_{}", id), Span::call_site());
 
-                    quote! { #id => { Handler::#ident(ctx, interaction, msg).await? } }
+                    quote! { #id => { Handler::#ident(ctx, interaction, msg, db).await? } }
                 });
 
                 quote! { #(#buttons),* }
@@ -66,7 +66,7 @@ pub fn interactive_msg(input: proc_macro::TokenStream) -> proc_macro::TokenStrea
                 let options = s.options.iter().map(|option| {
                     let id = option.id.value();
                     let ident = Ident::new(&format!("handle_{}", id), Span::call_site());
-                    quote! { #id => Handler::#ident(ctx, interaction, msg).await?, }
+                    quote! { #id => Handler::#ident(ctx, interaction, msg, db).await?, }
                 });
 
                 quote! { #id => {
@@ -99,8 +99,8 @@ pub fn interactive_msg(input: proc_macro::TokenStream) -> proc_macro::TokenStrea
                 ::serenity::all::CreateInteractionResponseMessage::new().components(vec![#(#rows),*])
             }
 
-            async fn handle_event(ctx: &::serenity::all::Context, interaction: &::serenity::all::ComponentInteraction, msg: &mut crate::components::InteractiveMessage) -> Result<(), ::serenity::Error> {
-                crate::log!("Running {}", stringify!(#name));
+            async fn handle_event(ctx: &::serenity::all::Context, interaction: &::serenity::all::ComponentInteraction, msg: &mut crate::components::InteractiveMessage, db: &::sqlx::SqlitePool) -> Result<(), ::serenity::Error> {
+                //crate::log!("Running {}", stringify!(#name));
                 match interaction.data.custom_id.as_str() {
                     #(#handle_func)*
                     _ => crate::log_error!("Unknown custom_id: {} for interaction: ", interaction.data.custom_id)

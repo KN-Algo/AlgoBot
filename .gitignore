@@ -12,3 +12,5 @@ devenv.local.nix
 token
 
 /modal_macro/target
+
+bot_db.sqlite*

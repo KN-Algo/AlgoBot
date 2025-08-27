@@ -2,6 +2,7 @@ use serenity::{
     all::{Command, CommandInteraction, Context, CreateCommand, EventHandler, Interaction, Ready},
     async_trait,
 };
+use sqlx::SqlitePool;
 
 use crate::log;
 use crate::log_error;
@@ -11,12 +12,14 @@ use std::collections::HashMap;
 
 pub struct Handler {
     registered_commands: HashMap<&'static str, Box<dyn BotCommand + Sync + Send>>,
+    db: sqlx::SqlitePool,
 }
 
 impl Handler {
-    pub fn new() -> Self {
+    pub fn new(db: SqlitePool) -> Self {
         Self {
             registered_commands: HashMap::new(),
+            db,
         }
     }
 
@@ -38,7 +41,7 @@ impl Handler {
             }
         };
 
-        match comm.run(ctx, command.clone()).await {
+        match comm.run(ctx, command.clone(), &self.db).await {
             Ok(_) => (),
             Err(e) => {
                 log_error!("Error running command {}!: {e}", command.data.name);
@@ -68,11 +71,5 @@ impl EventHandler for Handler {
                 Err(e) => log_error!("Error registering command {e}"),
             }
         }
-    }
-}
-
-impl Default for Handler {
-    fn default() -> Self {
-        Self::new()
     }
 }

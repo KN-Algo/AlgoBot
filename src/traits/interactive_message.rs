@@ -13,5 +13,6 @@ pub trait InteractiveMessageTrait {
         ctx: &Context,
         interaction: &ComponentInteraction,
         msg: &mut InteractiveMessage,
+        db: &sqlx::SqlitePool,
     ) -> Result<(), serenity::Error>;
 }

@@ -2,6 +2,7 @@ use serenity::all::{
     CommandInteraction, ComponentInteraction, Context, CreateInteractionResponse, Message,
 };
 use serenity::futures::StreamExt;
+use sqlx::SqlitePool;
 use std::time::Duration;
 
 use crate::traits::InteractiveMessageTrait;
@@ -16,6 +17,7 @@ pub struct InteractiveMessage {
                 &'a Context,
                 &'a ComponentInteraction,
                 &'a mut InteractiveMessage,
+                &'a sqlx::SqlitePool,
             ) -> std::pin::Pin<
                 Box<dyn Future<Output = Result<(), serenity::Error>> + Send + 'a>,
             > + Send
@@ -37,10 +39,14 @@ impl InteractiveMessage {
         Ok(Self {
             msg: m,
             has_handler_mutated: false,
-            handler: Box::new(|c, i, m| Box::pin(T::handle_event(c, i, m))),
+            handler: Box::new(|c, i, m, db| Box::pin(T::handle_event(c, i, m, db))),
         })
     }
-    pub async fn handle_events(&mut self, ctx: &Context) -> Result<(), serenity::Error> {
+    pub async fn handle_events(
+        &mut self,
+        ctx: &Context,
+        db: &SqlitePool,
+    ) -> Result<(), serenity::Error> {
         let mut interaction_stream = self
             .msg
             .await_component_interaction(&ctx.shard)
@@ -51,10 +57,10 @@ impl InteractiveMessage {
             //a band-aid fix for my terrible design
             let handler = std::mem::replace(
                 &mut self.handler,
-                Box::new(|_, _, _| Box::pin(async { Ok(()) })),
+                Box::new(|_, _, _, _| Box::pin(async { Ok(()) })),
             );
 
-            handler(ctx, &int, self).await?;
+            handler(ctx, &int, self, db).await?;
 
             if self.has_handler_mutated {
                 self.has_handler_mutated = false;
@@ -77,7 +83,7 @@ impl InteractiveMessage {
         interaction
             .create_response(ctx, CreateInteractionResponse::UpdateMessage(msg))
             .await?;
-        self.handler = Box::new(|c, i, m| Box::pin(T::handle_event(c, i, m)));
+        self.handler = Box::new(|c, i, m, db| Box::pin(T::handle_event(c, i, m, db)));
         self.has_handler_mutated = true;
         Ok(())
     }

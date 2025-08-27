@@ -14,10 +14,44 @@ pub mod traits;
 #[tokio::main]
 async fn main() {
     log!("Starting the bot!");
-    let token = std::env::var("DISCORD_TOKEN").expect("DISCORD_TOKEN is not set!");
+    let token = match std::env::var("DISCORD_TOKEN") {
+        Ok(t) => t,
+        Err(_) => {
+            log_error!("DISCORD_TOKEN is not set!");
+            return;
+        }
+    };
+
     let intents = GatewayIntents::non_privileged() | GatewayIntents::MESSAGE_CONTENT;
 
-    let handler = Handler::new()
+    let db = match sqlx::sqlite::SqlitePoolOptions::new()
+        .max_connections(5)
+        .connect_with(
+            sqlx::sqlite::SqliteConnectOptions::new()
+                .filename("bot_db.sqlite")
+                .create_if_missing(true),
+        )
+        .await
+    {
+        Ok(db) => {
+            log!("Connected to the database!");
+            db
+        }
+        Err(e) => {
+            log_error!("Couldn't connect to the database!: {e}");
+            return;
+        }
+    };
+
+    match sqlx::migrate!("./migrations").run(&db).await {
+        Ok(()) => log!("Successfully applied migrations!"),
+        Err(e) => {
+            log_error!("Migrations failed! {e}");
+            return;
+        }
+    }
+
+    let handler = Handler::new(db)
         .register_command("ping", Ping)
         .register_command("modal_test", ModalTest)
         .register_command("inter_test", InterTest);

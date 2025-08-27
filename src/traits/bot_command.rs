@@ -10,5 +10,6 @@ pub trait BotCommand {
         &self,
         ctx: &Context,
         interaction: CommandInteraction,
+        db: &sqlx::SqlitePool,
     ) -> Result<(), serenity::Error>;
 }

@@ -6,6 +6,7 @@ use serenity::{
     },
     async_trait,
 };
+use sqlx::SqlitePool;
 
 use crate::traits::BotCommand;
 
@@ -47,6 +48,7 @@ impl SusMsgHandlerTrait for SusMsgHandler {
         ctx: &Context,
         interaction: &ComponentInteraction,
         msg: &mut InteractiveMessage,
+        _db: &sqlx::SqlitePool,
     ) -> Result<(), serenity::Error> {
         msg.update_msg::<AmongMsg<AmongHandler>>(ctx, interaction)
             .await
@@ -55,6 +57,7 @@ impl SusMsgHandlerTrait for SusMsgHandler {
         ctx: &Context,
         interaction: &ComponentInteraction,
         _msg: &mut InteractiveMessage,
+        _db: &sqlx::SqlitePool,
     ) -> Result<(), serenity::Error> {
         log!("pressed sus_button2");
         interaction
@@ -66,6 +69,7 @@ impl SusMsgHandlerTrait for SusMsgHandler {
         ctx: &Context,
         interaction: &ComponentInteraction,
         _msg: &mut InteractiveMessage,
+        _db: &sqlx::SqlitePool,
     ) -> Result<(), serenity::Error> {
         log!("selected susser");
         interaction
@@ -77,6 +81,7 @@ impl SusMsgHandlerTrait for SusMsgHandler {
         ctx: &Context,
         interaction: &ComponentInteraction,
         _msg: &mut InteractiveMessage,
+        _db: &sqlx::SqlitePool,
     ) -> Result<(), serenity::Error> {
         log!("selected mog");
         interaction
@@ -91,6 +96,7 @@ impl AmongMsgHandlerTrait for AmongHandler {
         ctx: &Context,
         interaction: &ComponentInteraction,
         msg: &mut InteractiveMessage,
+        _db: &sqlx::SqlitePool,
     ) -> Result<(), serenity::Error> {
         msg.update_msg::<SusMsg<SusMsgHandler>>(ctx, interaction)
             .await
@@ -103,9 +109,10 @@ impl BotCommand for InterTest {
         &self,
         ctx: &Context,
         interaction: CommandInteraction,
+        db: &SqlitePool,
     ) -> Result<(), serenity::Error> {
         let mut msg = InteractiveMessage::new::<SusMsg<SusMsgHandler>>(ctx, interaction).await?;
-        msg.handle_events(ctx).await?;
+        msg.handle_events(ctx, db).await?;
         Ok(())
     }
 

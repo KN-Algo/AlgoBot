@@ -5,6 +5,7 @@ use serenity::{
     },
     async_trait,
 };
+use sqlx::SqlitePool;
 
 use crate::traits::bot_command::BotCommand;
 
@@ -16,6 +17,7 @@ impl BotCommand for Ping {
         &self,
         ctx: &Context,
         interaction: CommandInteraction,
+        _db: &SqlitePool,
     ) -> Result<(), serenity::Error> {
         let msg = CreateInteractionResponseMessage::new().content("pong!");
         let builder = CreateInteractionResponse::Message(msg);

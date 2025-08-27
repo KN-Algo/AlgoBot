@@ -7,6 +7,6 @@ edition = "2024"
 serenity = { default-features = false, features = [ "client", "gateway", "rustls_backend", "model", "cache", "collector", "utils" ], version = "0.12.4" }
 chrono = "0.4.40"
 tokio = { features = ["macros", "rt-multi-thread"], version = "1.44.2" }
-sqlx = "0.8"
+sqlx = { features = ["sqlite", "runtime-tokio-rustls"], version = "0.8"}
 
 modal_macro = { path = "./modal_macro" }

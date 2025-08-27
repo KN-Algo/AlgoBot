@@ -3,7 +3,7 @@ let
   pkgs-unstable = import inputs.nixpkgs-unstable { system = pkgs.stdenv.system; };
 in
 {
-  packages = with pkgs; [ bashInteractive ];
+  packages = with pkgs; [ bashInteractive sqlx-cli ];
 
   languages = {
     rust = {
@@ -20,6 +20,7 @@ in
 
   enterShell = ''
   export DISCORD_TOKEN=$(cat token)
+  export DATABASE_URL=sqlite:bot_db.sqlite
   '';
 
   processes.bot.exec = "./target/debug/algo-bot";
