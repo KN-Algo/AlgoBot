@@ -1,15 +1,9 @@
-use serenity::{
-    all::{CommandInteraction, Context, CreateCommand},
-    async_trait,
-};
+use serenity::{all::CreateCommand, async_trait};
+
+use crate::components::CommandCtx;
 
 #[async_trait]
 pub trait BotCommand {
     fn register(&self, command: CreateCommand) -> CreateCommand;
-    async fn run(
-        &self,
-        ctx: &Context,
-        interaction: CommandInteraction,
-        db: &sqlx::SqlitePool,
-    ) -> Result<(), serenity::Error>;
+    async fn run(&self, ctx: &CommandCtx) -> Result<(), serenity::Error>;
 }

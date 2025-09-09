@@ -4,8 +4,8 @@ use serenity::{
 };
 use sqlx::SqlitePool;
 
-use crate::log;
 use crate::log_error;
+use crate::{components::CommandCtx, log};
 
 use crate::traits::bot_command::BotCommand;
 use std::collections::HashMap;
@@ -41,7 +41,13 @@ impl Handler {
             }
         };
 
-        match comm.run(ctx, command.clone(), &self.db).await {
+        let new_ctx = CommandCtx {
+            discord_ctx: ctx,
+            interaction: &command,
+            db: &self.db,
+        };
+
+        match comm.run(&new_ctx).await {
             Ok(_) => (),
             Err(e) => {
                 log_error!("Error running command {}!: {e}", command.data.name);

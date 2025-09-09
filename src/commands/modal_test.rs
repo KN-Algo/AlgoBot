@@ -1,12 +1,9 @@
+use crate::components::CommandCtx;
 use crate::log;
 use crate::traits::BotCommand;
 use crate::traits::Modal;
 use modal_macro::modal;
-use serenity::{
-    all::{CommandInteraction, Context, CreateCommand},
-    async_trait,
-};
-use sqlx::SqlitePool;
+use serenity::{all::CreateCommand, async_trait};
 
 pub struct ModalTest;
 
@@ -29,13 +26,8 @@ modal! {
 
 #[async_trait]
 impl BotCommand for ModalTest {
-    async fn run(
-        &self,
-        ctx: &Context,
-        interaction: CommandInteraction,
-        _db: &SqlitePool,
-    ) -> Result<(), serenity::Error> {
-        let modal = CoolModal::execute(ctx, &interaction).await?;
+    async fn run(&self, ctx: &CommandCtx) -> Result<(), serenity::Error> {
+        let modal = CoolModal::execute(ctx.into(), ctx.interaction).await?;
         log!("Modal results {:?} {:?}", modal.name, modal.email);
         Ok(())
     }

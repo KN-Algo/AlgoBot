@@ -1,10 +1,8 @@
-use serenity::all::{
-    CommandInteraction, ComponentInteraction, Context, CreateInteractionResponse, Message,
-};
+use serenity::all::{ComponentInteraction, Context, CreateInteractionResponse, Message};
 use serenity::futures::StreamExt;
-use sqlx::SqlitePool;
 use std::time::Duration;
 
+use crate::components::{CommandCtx, EventCtx};
 use crate::traits::InteractiveMessageTrait;
 
 pub struct InteractiveMessage {
@@ -14,10 +12,7 @@ pub struct InteractiveMessage {
     has_handler_mutated: bool,
     handler: Box<
         dyn for<'a> Fn(
-                &'a Context,
-                &'a ComponentInteraction,
-                &'a mut InteractiveMessage,
-                &'a sqlx::SqlitePool,
+                &'a mut EventCtx<'a>,
             ) -> std::pin::Pin<
                 Box<dyn Future<Output = Result<(), serenity::Error>> + Send + 'a>,
             > + Send
@@ -27,40 +22,41 @@ pub struct InteractiveMessage {
 
 impl InteractiveMessage {
     pub async fn new<T: InteractiveMessageTrait + 'static>(
-        ctx: &Context,
-        interaction: CommandInteraction,
+        ctx: &CommandCtx<'_>,
     ) -> Result<Self, serenity::Error> {
         let msg = T::into_msg().ephemeral(true);
 
         let builder = CreateInteractionResponse::Message(msg);
-        interaction.create_response(ctx, builder).await?;
-        let m = interaction.get_response(&ctx.http).await?;
+        ctx.interaction.create_response(ctx, builder).await?;
+        let m = ctx.interaction.get_response(ctx.discord_ctx).await?;
 
         Ok(Self {
             msg: m,
             has_handler_mutated: false,
-            handler: Box::new(|c, i, m, db| Box::pin(T::handle_event(c, i, m, db))),
+            handler: Box::new(|c| Box::pin(T::handle_event(c))),
         })
     }
-    pub async fn handle_events(
-        &mut self,
-        ctx: &Context,
-        db: &SqlitePool,
-    ) -> Result<(), serenity::Error> {
+
+    pub async fn handle_events(&mut self, ctx: &CommandCtx<'_>) -> Result<(), serenity::Error> {
         let mut interaction_stream = self
             .msg
-            .await_component_interaction(&ctx.shard)
+            .await_component_interaction(&ctx.discord_ctx.shard)
             .timeout(Duration::from_secs(180))
             .stream();
 
         while let Some(int) = interaction_stream.next().await {
             //a band-aid fix for my terrible design
-            let handler = std::mem::replace(
-                &mut self.handler,
-                Box::new(|_, _, _, _| Box::pin(async { Ok(()) })),
-            );
+            let handler =
+                std::mem::replace(&mut self.handler, Box::new(|_| Box::pin(async { Ok(()) })));
 
-            handler(ctx, &int, self, db).await?;
+            let mut new_ctx = EventCtx {
+                discord_ctx: ctx.discord_ctx,
+                interaction: &int,
+                msg: self,
+                db: ctx.db,
+            };
+
+            handler(&mut new_ctx).await?;
 
             if self.has_handler_mutated {
                 self.has_handler_mutated = false;
@@ -70,7 +66,7 @@ impl InteractiveMessage {
             self.handler = handler;
         }
 
-        self.msg.delete(ctx).await?;
+        self.msg.delete(ctx.discord_ctx).await?;
         Ok(())
     }
 
@@ -83,7 +79,7 @@ impl InteractiveMessage {
         interaction
             .create_response(ctx, CreateInteractionResponse::UpdateMessage(msg))
             .await?;
-        self.handler = Box::new(|c, i, m, db| Box::pin(T::handle_event(c, i, m, db)));
+        self.handler = Box::new(|c| Box::pin(T::handle_event(c)));
         self.has_handler_mutated = true;
         Ok(())
     }

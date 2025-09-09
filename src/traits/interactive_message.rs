@@ -1,18 +1,9 @@
-use serenity::{
-    all::{ComponentInteraction, Context, CreateInteractionResponseMessage},
-    async_trait,
-};
+use serenity::{all::CreateInteractionResponseMessage, async_trait};
 
-use crate::components::InteractiveMessage;
+use crate::components::EventCtx;
 
 #[async_trait]
 pub trait InteractiveMessageTrait {
     fn into_msg() -> CreateInteractionResponseMessage;
-
-    async fn handle_event(
-        ctx: &Context,
-        interaction: &ComponentInteraction,
-        msg: &mut InteractiveMessage,
-        db: &sqlx::SqlitePool,
-    ) -> Result<(), serenity::Error>;
+    async fn handle_event(ctx: &mut EventCtx) -> Result<(), serenity::Error>;
 }

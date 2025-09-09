@@ -1,27 +1,13 @@
-use serenity::{
-    all::{
-        CommandInteraction, Context, CreateCommand, CreateInteractionResponse,
-        CreateInteractionResponseMessage,
-    },
-    async_trait,
-};
-use sqlx::SqlitePool;
+use serenity::{all::CreateCommand, async_trait};
 
-use crate::traits::bot_command::BotCommand;
+use crate::{components::CommandCtx, traits::bot_command::BotCommand};
 
 pub struct Ping;
 
 #[async_trait]
 impl BotCommand for Ping {
-    async fn run(
-        &self,
-        ctx: &Context,
-        interaction: CommandInteraction,
-        _db: &SqlitePool,
-    ) -> Result<(), serenity::Error> {
-        let msg = CreateInteractionResponseMessage::new().content("pong!");
-        let builder = CreateInteractionResponse::Message(msg);
-        interaction.create_response(ctx, builder).await
+    async fn run(&self, ctx: &CommandCtx) -> Result<(), serenity::Error> {
+        ctx.simple_response("pong!").await
     }
 
     fn register(&self, create: CreateCommand) -> CreateCommand {
