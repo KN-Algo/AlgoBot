@@ -81,7 +81,8 @@ pub fn interactive_msg(input: proc_macro::TokenStream) -> proc_macro::TokenStrea
         }
     });
 
-    let merged_handler_trait_ident = Ident::new(&format!("{}HandlerTrait", name.to_string()), Span::call_site());
+    let handler_name = struct_tag.handler_name;
+    let merged_handler_trait_ident = Ident::new(&format!("{}Trait", handler_name.to_string()), handler_name.span());
 
     let code = quote! {
         #[::serenity::async_trait]
@@ -92,6 +93,8 @@ pub fn interactive_msg(input: proc_macro::TokenStream) -> proc_macro::TokenStrea
         struct #name<Handler: #merged_handler_trait_ident> {
             p: ::std::marker::PhantomData<Handler>
         }
+
+        struct #handler_name;
 
         #[::serenity::async_trait]
         impl<Handler: #merged_handler_trait_ident> crate::traits::InteractiveMessageTrait for #name<Handler> {
