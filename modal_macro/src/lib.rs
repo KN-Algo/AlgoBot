@@ -174,17 +174,17 @@ pub fn modal(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
         }
 
         #[::serenity::async_trait]
-        impl crate::traits::modal::Modal for #struct_name {
-            async fn execute(ctx: &::serenity::all::Context, interaction: &::serenity::all::CommandInteraction) -> Result<Self, ::serenity::Error> {
+        impl crate::traits::modal::ModalTrait for #struct_name {
+            async fn execute(ctx: &::serenity::all::Context, id: &::serenity::all::InteractionId, token: &::std::primitive::str) -> Result<Self, ::serenity::Error> {
                 use ::serenity::builder::Builder;
-                let custom_id = interaction.id.to_string();
+                let custom_id = id.to_string();
                 let modal = ::serenity::builder::CreateModal::new(&custom_id, #title).components(
                     vec![#(#components),*]
                 );
 
                 let builder = ::serenity::builder::CreateInteractionResponse::Modal(modal);
                 builder
-                    .execute(ctx, (interaction.id, &interaction.token))
+                    .execute(ctx, (*id, token))
                     .await?;
 
                 let collector = ::serenity::collector::ModalInteractionCollector::new(&ctx.shard)

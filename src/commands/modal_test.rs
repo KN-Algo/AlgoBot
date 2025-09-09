@@ -1,7 +1,7 @@
+use crate::components::modal::Modal;
 use crate::components::CommandCtx;
 use crate::log;
 use crate::traits::BotCommand;
-use crate::traits::Modal;
 use modal_macro::modal;
 use serenity::{all::CreateCommand, async_trait};
 
@@ -27,7 +27,7 @@ modal! {
 #[async_trait]
 impl BotCommand for ModalTest {
     async fn run(&self, ctx: &CommandCtx) -> Result<(), serenity::Error> {
-        let modal = CoolModal::execute(ctx.into(), ctx.interaction).await?;
+        let modal = Modal::<CoolModal>::from_command(ctx).execute().await?;
         log!("Modal results {:?} {:?}", modal.name, modal.email);
         Ok(())
     }

@@ -4,4 +4,4 @@ pub mod modal;
 
 pub use bot_command::BotCommand;
 pub use interactive_message::InteractiveMessageTrait;
-pub use modal::Modal;
+pub use modal::ModalTrait;

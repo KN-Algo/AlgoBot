@@ -1,15 +1,16 @@
 use serenity::{
-    all::{CommandInteraction, Context},
+    all::{Context, InteractionId},
     async_trait,
 };
 
 #[async_trait]
-pub trait Modal
+pub trait ModalTrait
 where
     Self: Sized,
 {
     async fn execute(
         ctx: &Context,
-        interaction: &CommandInteraction,
+        id: &InteractionId,
+        token: &str,
     ) -> Result<Self, serenity::Error>;
 }
