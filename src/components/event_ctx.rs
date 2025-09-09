@@ -1,4 +1,7 @@
-use crate::{components::interactive_message::InteractiveMessage, traits::InteractiveMessageTrait};
+use crate::{
+    components::interactive_message::InteractiveMessage,
+    traits::{InteractiveMessageTrait, ModalTrait},
+};
 use serenity::all::{CacheHttp, ComponentInteraction, Context};
 use sqlx::SqlitePool;
 
@@ -23,6 +26,15 @@ impl<'ctx> EventCtx<'ctx> {
                 serenity::all::CreateInteractionResponse::Acknowledge,
             )
             .await
+    }
+
+    pub async fn modal<Modal: ModalTrait>(&self) -> Result<Modal, serenity::Error> {
+        Modal::execute(
+            self.discord_ctx,
+            &self.interaction.id,
+            &self.interaction.token,
+        )
+        .await
     }
 }
 

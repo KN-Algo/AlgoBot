@@ -4,6 +4,8 @@ use serenity::all::{
 };
 use sqlx::SqlitePool;
 
+use crate::traits::ModalTrait;
+
 pub struct CommandCtx<'ctx> {
     pub discord_ctx: &'ctx Context,
     pub interaction: &'ctx CommandInteraction,
@@ -15,6 +17,15 @@ impl<'ctx> CommandCtx<'ctx> {
         let msg = CreateInteractionResponseMessage::new().content(msg);
         let builder = CreateInteractionResponse::Message(msg);
         self.interaction.create_response(self, builder).await
+    }
+
+    pub async fn modal<Modal: ModalTrait>(&self) -> Result<Modal, serenity::Error> {
+        Modal::execute(
+            self.discord_ctx,
+            &self.interaction.id,
+            &self.interaction.token,
+        )
+        .await
     }
 }
 
