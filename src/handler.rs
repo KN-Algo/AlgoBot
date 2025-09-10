@@ -114,8 +114,8 @@ impl EventHandler for Handler {
         let all_global_commands = match Command::get_global_commands(&ctx).await {
             Ok(commands) => commands,
             Err(e) => {
-                log_error!("Error fetching global commands: {e}");
-                vec![]
+                log_error!("Error fetching global commands: {e}! Skipping command registration");
+                return;
             }
         };
 
