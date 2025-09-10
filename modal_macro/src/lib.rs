@@ -169,13 +169,15 @@ pub fn modal(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
         .collect::<TokenStream>();
 
     let code = quote! {
-        struct #struct_name {
+        struct #struct_name<'ctx> {
+            interaction: ::serenity::all::ModalInteraction,
+            discord_ctx: &'ctx ::serenity::all::Context,
             #declare_fields
         }
 
         #[::serenity::async_trait]
-        impl crate::traits::modal::ModalTrait for #struct_name {
-            async fn execute(ctx: &::serenity::all::Context, id: &::serenity::all::InteractionId, token: &::std::primitive::str) -> Result<Self, ::serenity::Error> {
+        impl<'ctx> crate::traits::modal::ModalTrait<'ctx> for #struct_name<'ctx> {
+            async fn execute(ctx: &::serenity::all::Context, id: &::serenity::all::InteractionId, token: &::std::primitive::str) -> Result<Self, ::serenity::Error> where 'life0: 'ctx {
                 use ::serenity::builder::Builder;
                 let custom_id = id.to_string();
                 let modal = ::serenity::builder::CreateModal::new(&custom_id, #title).components(
@@ -193,9 +195,6 @@ pub fn modal(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 
                 let modal_interaction = collector.next().await;
                 let Some(modal_interaction) = modal_interaction else { return Err(::serenity::Error::Other("Didn't receive a modal interaction back!")) };
-                modal_interaction.create_response(ctx, ::serenity::all::CreateInteractionResponse::Message(
-                    ::serenity::all::CreateInteractionResponseMessage::default().ephemeral(true).content("Done!")
-                )).await?;
 
                 let inputs = modal_interaction.data.components.iter();
                 #let_components
@@ -209,7 +208,15 @@ pub fn modal(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
                     }
                 }
 
-                Ok(Self { #fields_punct })
+                Ok(Self { interaction: modal_interaction, discord_ctx: ctx, #fields_punct })
+            }
+
+            fn discord_ctx(&self) -> &::serenity::all::Context {
+                self.discord_ctx
+            }
+
+            fn interaction(&self) -> &::serenity::all::ModalInteraction {
+                &self.interaction
             }
         }
     };

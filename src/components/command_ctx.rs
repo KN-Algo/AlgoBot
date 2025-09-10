@@ -22,7 +22,7 @@ impl<'ctx> CommandCtx<'ctx> {
         self.interaction.create_response(self, builder)
     }
 
-    pub fn modal<Modal: ModalTrait + 'ctx>(
+    pub fn modal<Modal: ModalTrait<'ctx> + 'ctx>(
         &self,
     ) -> impl Future<Output = Result<Modal, serenity::Error>> {
         Modal::execute(
