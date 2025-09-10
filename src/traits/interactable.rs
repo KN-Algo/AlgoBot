@@ -9,12 +9,17 @@ pub trait Interactable<'ctx> {
     fn discord_ctx(&self) -> &Context;
     fn id_token(&self) -> (InteractionId, &str);
 
-    fn acknowlage_interaction(&self) -> impl Future<Output = Result> {
+    fn acknowlage(&self) -> impl Future<Output = Result> {
         CreateInteractionResponse::Acknowledge.execute(self.discord_ctx(), self.id_token())
     }
 
     fn respond(&self, msg: impl IntoResponse) -> impl Future<Output = Result> {
         CreateInteractionResponse::Message(msg.into_msg())
+            .execute(self.discord_ctx(), self.id_token())
+    }
+
+    fn edit(&self, msg: impl IntoResponse) -> impl Future<Output = Result> {
+        CreateInteractionResponse::UpdateMessage(msg.into_msg())
             .execute(self.discord_ctx(), self.id_token())
     }
 
