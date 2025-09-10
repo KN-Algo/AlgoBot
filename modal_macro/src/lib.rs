@@ -22,21 +22,24 @@ pub fn interactive_msg(input: proc_macro::TokenStream) -> proc_macro::TokenStrea
     let trait_funcs = rows.iter().map(|row| {
         match &row.component {
             RowComponent::Input(i) => { 
-                let ident = Ident::new(&format!("handle_{}", i.id.value()), Span::call_site());
-                quote! { async fn #ident(ctx: &mut crate::components::EventCtx) -> ::std::result::Result<(), ::serenity::Error> { Ok(()) } }
+                let id = i.id.value();
+                let ident = Ident::new(&format!("handle_{}", id), Span::call_site());
+                quote! { async fn #ident(ctx: &mut crate::components::EventCtx) -> ::std::result::Result<(), ::serenity::Error> { crate::log_warn!("Unhandled Interaction: {}", #id); Ok(()) } }
             }
             RowComponent::SelectMenu(s) => {
                 let options = s.options.iter().map(|option| {
-                    let ident = Ident::new(&format!("handle_{}", option.id.value()), Span::call_site());
-                    quote! { async fn #ident(ctx: &mut crate::components::EventCtx) -> ::std::result::Result<(), ::serenity::Error> { Ok(()) } }
+                    let id = option.id.value();
+                    let ident = Ident::new(&format!("handle_{}", id), Span::call_site());
+                    quote! { async fn #ident(ctx: &mut crate::components::EventCtx) -> ::std::result::Result<(), ::serenity::Error> { crate::log_warn!("Unhandled Interaction: {}", #id); Ok(()) } }
                 });
 
                 quote! { #(#options)* }
             }
             RowComponent::Buttons(b) => {
                 let buttons = b.iter().map(|button| {
-                    let ident = Ident::new(&format!("handle_{}", button.id.value()), Span::call_site());
-                    quote! { async fn #ident(ctx: &mut crate::components::EventCtx) -> ::std::result::Result<(), ::serenity::Error> { Ok(()) } }
+                    let id = button.id.value();
+                    let ident = Ident::new(&format!("handle_{}", id), Span::call_site());
+                    quote! { async fn #ident(ctx: &mut crate::components::EventCtx) -> ::std::result::Result<(), ::serenity::Error> { crate::log_warn!("Unhandled Interaction: {}", #id); Ok(()) } }
                 });
 
                 quote! { #(#buttons)* }
