@@ -1,7 +1,7 @@
 use serenity::{all::GatewayIntents, Client};
 
 use crate::{
-    commands::{InterTest, ModalTest, Ping},
+    commands::{EmbedTest, InterTest, ModalTest, Ping},
     handler::Handler,
 };
 
@@ -54,7 +54,8 @@ async fn main() {
     let handler = Handler::new(db)
         .register_command("ping", Ping)
         .register_command("modal_test", ModalTest)
-        .register_command("inter_test", InterTest);
+        .register_command("inter_test", InterTest)
+        .register_command("embed_test", EmbedTest);
 
     let mut client = match Client::builder(token, intents).event_handler(handler).await {
         Ok(c) => {
