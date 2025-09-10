@@ -10,6 +10,17 @@ macro_rules! log {
 }
 
 #[macro_export]
+macro_rules! log_warn {
+    ($msg:literal $(,$arg:expr)*) => {
+        eprintln!(
+            "{} [\x1b[33mWARNING\x1b[0m]: {}",
+            chrono::Local::now().format("%d-%m-%y %H:%M:%S"),
+            format!($msg, $($arg,)*)
+        )
+    };
+}
+
+#[macro_export]
 macro_rules! log_error {
     ($msg:literal $(,$arg:expr)*) => {
         eprintln!(
