@@ -9,3 +9,9 @@ impl IntoResponse for &str {
         CreateInteractionResponseMessage::new().content(*self)
     }
 }
+
+impl IntoResponse for String {
+    fn into_msg(&self) -> CreateInteractionResponseMessage {
+        CreateInteractionResponseMessage::new().content(self)
+    }
+}
