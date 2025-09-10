@@ -177,16 +177,16 @@ pub fn modal(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 
         #[::serenity::async_trait]
         impl<'ctx> crate::traits::modal::ModalTrait<'ctx> for #struct_name<'ctx> {
-            async fn execute(ctx: &::serenity::all::Context, id: &::serenity::all::InteractionId, token: &::std::primitive::str) -> Result<Self, ::serenity::Error> where 'life0: 'ctx {
+            async fn execute(ctx: &::serenity::all::Context, id_token: (::serenity::all::InteractionId, &::std::primitive::str)) -> Result<Self, ::serenity::Error> where 'life0: 'ctx {
                 use ::serenity::builder::Builder;
-                let custom_id = id.to_string();
+                let custom_id = id_token.0.to_string();
                 let modal = ::serenity::builder::CreateModal::new(&custom_id, #title).components(
                     vec![#(#components),*]
                 );
 
                 let builder = ::serenity::builder::CreateInteractionResponse::Modal(modal);
                 builder
-                    .execute(ctx, (*id, token))
+                    .execute(ctx, id_token)
                     .await?;
 
                 let collector = ::serenity::collector::ModalInteractionCollector::new(&ctx.shard)
@@ -211,12 +211,15 @@ pub fn modal(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
                 Ok(Self { interaction: modal_interaction, discord_ctx: ctx, #fields_punct })
             }
 
+        }
+
+        impl<'ctx> crate::traits::Interactable<'ctx> for #struct_name<'ctx> {
             fn discord_ctx(&self) -> &::serenity::all::Context {
                 self.discord_ctx
             }
 
-            fn interaction(&self) -> &::serenity::all::ModalInteraction {
-                &self.interaction
+            fn id_token(&self) -> (::serenity::all::InteractionId, &::std::primitive::str) {
+                (self.interaction.id, &self.interaction.token)
             }
         }
     };

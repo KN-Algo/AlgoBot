@@ -1,10 +1,7 @@
-use serenity::all::{
-    CacheHttp, CommandInteraction, Context, CreateInteractionResponse,
-    CreateInteractionResponseMessage,
-};
+use serenity::all::{CacheHttp, CommandInteraction, Context};
 use sqlx::SqlitePool;
 
-use crate::traits::ModalTrait;
+use crate::traits::interactable::Interactable;
 
 pub struct CommandCtx<'ctx> {
     pub discord_ctx: &'ctx Context,
@@ -12,31 +9,13 @@ pub struct CommandCtx<'ctx> {
     pub db: &'ctx SqlitePool,
 }
 
-impl<'ctx> CommandCtx<'ctx> {
-    pub fn simple_response(
-        &self,
-        msg: impl Into<String>,
-    ) -> impl Future<Output = Result<(), serenity::Error>> {
-        let msg = CreateInteractionResponseMessage::new().content(msg);
-        let builder = CreateInteractionResponse::Message(msg);
-        self.interaction.create_response(self, builder)
+impl<'ctx> Interactable<'ctx> for CommandCtx<'ctx> {
+    fn discord_ctx(&self) -> &Context {
+        self.discord_ctx
     }
 
-    pub fn modal<Modal: ModalTrait<'ctx> + 'ctx>(
-        &self,
-    ) -> impl Future<Output = Result<Modal, serenity::Error>> {
-        Modal::execute(
-            self.discord_ctx,
-            &self.interaction.id,
-            &self.interaction.token,
-        )
-    }
-
-    pub fn acknowlage_interaction(&self) -> impl Future<Output = Result<(), serenity::Error>> {
-        self.interaction.create_response(
-            self.discord_ctx,
-            serenity::all::CreateInteractionResponse::Acknowledge,
-        )
+    fn id_token(&self) -> (serenity::all::InteractionId, &str) {
+        (self.interaction.id, &self.interaction.token)
     }
 }
 

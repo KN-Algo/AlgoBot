@@ -5,36 +5,40 @@ use serenity::{
     async_trait,
 };
 
-use crate::{components::CommandCtx, traits::BotCommand};
+use crate::{
+    components::CommandCtx,
+    traits::{BotCommand, Interactable, IntoResponse},
+};
+
+struct Embed;
+
+impl IntoResponse for Embed {
+    fn into_msg(&self) -> CreateInteractionResponseMessage {
+        CreateInteractionResponseMessage::new()
+            .content("embed")
+            .embed(
+                CreateEmbed::new()
+                    .title("Test Embed")
+                    .description("this a test embed")
+                    .color(serenity::model::Colour::FOOYOO)
+                    .fields([
+                        ("name", "value", false),
+                        ("inline1", "inline", true),
+                        ("inline2", "inline", true),
+                    ])
+                    .footer(CreateEmbedFooter::new("a footer"))
+                    .timestamp(Timestamp::now())
+                    .url("example.org"),
+            )
+    }
+}
 
 pub struct EmbedTest;
 
 #[async_trait]
 impl BotCommand for EmbedTest {
     async fn run(&self, ctx: &CommandCtx) -> Result<(), serenity::Error> {
-        ctx.interaction
-            .create_response(
-                ctx,
-                serenity::all::CreateInteractionResponse::Message(
-                    CreateInteractionResponseMessage::new()
-                        .content("embed")
-                        .embed(
-                            CreateEmbed::new()
-                                .title("Test Embed")
-                                .description("this a test embed")
-                                .color(serenity::model::Colour::FOOYOO)
-                                .fields([
-                                    ("name", "value", false),
-                                    ("inline1", "inline", true),
-                                    ("inline2", "inline", true),
-                                ])
-                                .footer(CreateEmbedFooter::new("a footer"))
-                                .timestamp(Timestamp::now())
-                                .url("example.org"),
-                        ),
-                ),
-            )
-            .await
+        ctx.respond(Embed).await
     }
 
     fn register(&self, create: CreateCommand) -> CreateCommand {

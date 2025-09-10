@@ -1,6 +1,6 @@
 use crate::{
     components::interactive_message::InteractiveMessage,
-    traits::{InteractiveMessageTrait, ModalTrait},
+    traits::{interactable::Interactable, InteractiveMessageTrait},
 };
 use serenity::all::{CacheHttp, ComponentInteraction, Context};
 use sqlx::SqlitePool;
@@ -18,22 +18,15 @@ impl<'ctx> EventCtx<'ctx> {
     ) -> impl Future<Output = Result<(), serenity::Error>> {
         self.msg.update_msg::<T>(self.discord_ctx, self.interaction)
     }
+}
 
-    pub fn acknowlage_interaction(&self) -> impl Future<Output = Result<(), serenity::Error>> {
-        self.interaction.create_response(
-            self.discord_ctx,
-            serenity::all::CreateInteractionResponse::Acknowledge,
-        )
+impl<'ctx> Interactable<'ctx> for EventCtx<'ctx> {
+    fn discord_ctx(&self) -> &Context {
+        self.discord_ctx
     }
 
-    pub fn modal<Modal: ModalTrait<'ctx> + 'ctx>(
-        &self,
-    ) -> impl Future<Output = Result<Modal, serenity::Error>> {
-        Modal::execute(
-            self.discord_ctx,
-            &self.interaction.id,
-            &self.interaction.token,
-        )
+    fn id_token(&self) -> (serenity::all::InteractionId, &str) {
+        (self.interaction.id, &self.interaction.token)
     }
 }
 

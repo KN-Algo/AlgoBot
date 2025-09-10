@@ -1,5 +1,6 @@
 use crate::components::EventCtx;
 use crate::traits::BotCommand;
+use crate::traits::Interactable;
 use crate::{
     components::{CommandCtx, InteractiveMessage},
     log,
