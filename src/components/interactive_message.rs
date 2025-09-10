@@ -1,4 +1,6 @@
-use serenity::all::{ComponentInteraction, Context, CreateInteractionResponse, Message};
+use serenity::all::{
+    ComponentInteraction, Context, CreateInteractionResponse, EditMessage, Message, MessageFlags,
+};
 use serenity::futures::StreamExt;
 use std::time::Duration;
 
@@ -41,7 +43,7 @@ impl InteractiveMessage {
         let mut interaction_stream = self
             .msg
             .await_component_interaction(&ctx.discord_ctx.shard)
-            .timeout(Duration::from_secs(180))
+            .timeout(Duration::from_secs(1))
             .stream();
 
         while let Some(int) = interaction_stream.next().await {
@@ -66,7 +68,14 @@ impl InteractiveMessage {
             self.handler = handler;
         }
 
-        self.msg.delete(ctx.discord_ctx).await?;
+        match self.msg.flags {
+            Some(flags) => match flags {
+                MessageFlags::EPHEMERAL => (), //you just can't delete emphemeral messages
+                _ => self.msg.delete(ctx).await?,
+            },
+            None => (),
+        }
+
         Ok(())
     }
 
