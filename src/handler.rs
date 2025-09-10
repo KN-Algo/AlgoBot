@@ -4,8 +4,7 @@ use serenity::{
 };
 use sqlx::SqlitePool;
 
-use crate::log_error;
-use crate::{components::CommandCtx, log};
+use crate::{components::CommandCtx, log, log_error, log_warn};
 
 use crate::traits::bot_command::BotCommand;
 use std::collections::HashMap;
@@ -64,7 +63,7 @@ impl EventHandler for Handler {
             Interaction::Command(command) => self.handle_command(&ctx, command).await,
             Interaction::Component(_component) => (),
             Interaction::Modal(_) => (),
-            _ => log!("Unsupported interaction: {:?}", interaction),
+            _ => log_warn!("Unsupported interaction: {:?}", interaction),
         }
     }
 

@@ -1,5 +1,5 @@
 use serenity::all::{
-    ComponentInteraction, Context, CreateInteractionResponse, EditMessage, Message, MessageFlags,
+    ComponentInteraction, Context, CreateInteractionResponse, Message, MessageFlags,
 };
 use serenity::futures::StreamExt;
 use std::time::Duration;

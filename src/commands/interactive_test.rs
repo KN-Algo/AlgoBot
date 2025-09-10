@@ -1,12 +1,10 @@
 use crate::aliases::Result;
 use crate::components::EventCtx;
+use crate::components::{CommandCtx, InteractiveMessage};
 use crate::traits::BotCommand;
 use crate::traits::Interactable;
-use crate::{
-    components::{CommandCtx, InteractiveMessage},
-    log,
-};
 use modal_macro::interactive_msg;
+use modal_macro::modal;
 use serenity::{all::CreateCommand, async_trait};
 
 pub struct InterTest;
@@ -37,24 +35,34 @@ interactive_msg! {
     </AmongMsg>
 }
 
+modal! {
+<ImposterModal title="Impostor!" duration=30>
+    <row>
+        <input id="i" style="short">"idk what to put here"</input>
+    </row>
+</ImposterModal>
+}
+
 #[async_trait]
 impl SusMsgHandlerTrait for SusMsgHandler {
     async fn handle_sus_button(ctx: &mut EventCtx) -> Result {
         ctx.update_msg::<AmongMsg<AmongHandler>>().await
     }
+
     async fn handle_sus_button2(ctx: &mut EventCtx) -> Result {
-        log!("pressed sus_button2");
-        ctx.acknowlage_interaction().await
+        ctx.respond("I am the sus").await
+    }
+
+    async fn handle_sus_button3(ctx: &mut EventCtx) -> Result {
+        ctx.acknowlage().await
     }
 
     async fn handle_susser(ctx: &mut EventCtx) -> Result {
-        log!("selected susser");
-        ctx.acknowlage_interaction().await
+        ctx.acknowlage().await
     }
 
     async fn handle_mog(ctx: &mut EventCtx) -> Result {
-        log!("selected mog");
-        ctx.acknowlage_interaction().await
+        ctx.acknowlage().await
     }
 }
 
