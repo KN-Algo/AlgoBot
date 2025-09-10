@@ -13,28 +13,27 @@ pub struct EventCtx<'ctx> {
 }
 
 impl<'ctx> EventCtx<'ctx> {
-    pub async fn update_msg<T: InteractiveMessageTrait>(&mut self) -> Result<(), serenity::Error> {
-        self.msg
-            .update_msg::<T>(self.discord_ctx, self.interaction)
-            .await
+    pub fn update_msg<T: InteractiveMessageTrait>(
+        &mut self,
+    ) -> impl Future<Output = Result<(), serenity::Error>> {
+        self.msg.update_msg::<T>(self.discord_ctx, self.interaction)
     }
 
-    pub async fn acknowlage_interaction(&self) -> Result<(), serenity::Error> {
-        self.interaction
-            .create_response(
-                self.discord_ctx,
-                serenity::all::CreateInteractionResponse::Acknowledge,
-            )
-            .await
+    pub fn acknowlage_interaction(&self) -> impl Future<Output = Result<(), serenity::Error>> {
+        self.interaction.create_response(
+            self.discord_ctx,
+            serenity::all::CreateInteractionResponse::Acknowledge,
+        )
     }
 
-    pub async fn modal<Modal: ModalTrait>(&self) -> Result<Modal, serenity::Error> {
+    pub fn modal<Modal: ModalTrait + 'ctx>(
+        &self,
+    ) -> impl Future<Output = Result<Modal, serenity::Error>> {
         Modal::execute(
             self.discord_ctx,
             &self.interaction.id,
             &self.interaction.token,
         )
-        .await
     }
 }
 

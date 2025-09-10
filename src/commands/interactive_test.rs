@@ -28,14 +28,12 @@ interactive_msg! {
 }
 
 interactive_msg! {
-    <AmongMsg handler=AmongMsgHandler>
+    <AmongMsg handler=AmongHandler>
         <row>
             <button id="among_button" style="primary">"back"</button>
         </row>
     </AmongMsg>
 }
-
-struct AmongHandler;
 
 #[async_trait]
 impl SusMsgHandlerTrait for SusMsgHandler {
@@ -59,11 +57,9 @@ impl SusMsgHandlerTrait for SusMsgHandler {
 }
 
 #[async_trait]
-impl AmongMsgHandlerTrait for AmongHandler {
+impl AmongHandlerTrait for AmongHandler {
     async fn handle_among_button(ctx: &mut EventCtx) -> Result<(), serenity::Error> {
-        ctx.msg
-            .update_msg::<SusMsg<SusMsgHandler>>(ctx.discord_ctx, &ctx.interaction)
-            .await
+        ctx.update_msg::<SusMsg<SusMsgHandler>>().await
     }
 }
 
@@ -71,8 +67,7 @@ impl AmongMsgHandlerTrait for AmongHandler {
 impl BotCommand for InterTest {
     async fn run(&self, ctx: &CommandCtx) -> Result<(), serenity::Error> {
         let mut msg = InteractiveMessage::new::<SusMsg<SusMsgHandler>>(ctx).await?;
-        msg.handle_events(&ctx).await?;
-        Ok(())
+        msg.handle_events(&ctx).await
     }
 
     fn register(&self, create: CreateCommand) -> CreateCommand {

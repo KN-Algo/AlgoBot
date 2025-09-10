@@ -192,7 +192,7 @@ pub fn modal(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
                     .timeout(std::time::Duration::from_secs(#duration));
 
                 let modal_interaction = collector.next().await;
-                let Some(modal_interaction) = modal_interaction else { return Err(::serenity::Error::Other("SUS")) };
+                let Some(modal_interaction) = modal_interaction else { return Err(::serenity::Error::Other("Didn't receive a modal interaction back!")) };
                 modal_interaction.create_response(ctx, ::serenity::all::CreateInteractionResponse::Message(
                     ::serenity::all::CreateInteractionResponseMessage::default().ephemeral(true).content("Done!")
                 )).await?;

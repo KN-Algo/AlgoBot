@@ -28,7 +28,7 @@ impl BotCommand for ModalTest {
     async fn run(&self, ctx: &CommandCtx) -> Result<(), serenity::Error> {
         let modal = ctx.modal::<CoolModal>().await?;
         log!("Modal results {:?} {:?}", modal.name, modal.email);
-        Ok(())
+        ctx.simple_response("Done!").await
     }
 
     fn register(&self, create: CreateCommand) -> CreateCommand {

@@ -13,19 +13,30 @@ pub struct CommandCtx<'ctx> {
 }
 
 impl<'ctx> CommandCtx<'ctx> {
-    pub async fn simple_response(&self, msg: impl Into<String>) -> Result<(), serenity::Error> {
+    pub fn simple_response(
+        &self,
+        msg: impl Into<String>,
+    ) -> impl Future<Output = Result<(), serenity::Error>> {
         let msg = CreateInteractionResponseMessage::new().content(msg);
         let builder = CreateInteractionResponse::Message(msg);
-        self.interaction.create_response(self, builder).await
+        self.interaction.create_response(self, builder)
     }
 
-    pub async fn modal<Modal: ModalTrait>(&self) -> Result<Modal, serenity::Error> {
+    pub fn modal<Modal: ModalTrait + 'ctx>(
+        &self,
+    ) -> impl Future<Output = Result<Modal, serenity::Error>> {
         Modal::execute(
             self.discord_ctx,
             &self.interaction.id,
             &self.interaction.token,
         )
-        .await
+    }
+
+    pub fn acknowlage_interaction(&self) -> impl Future<Output = Result<(), serenity::Error>> {
+        self.interaction.create_response(
+            self.discord_ctx,
+            serenity::all::CreateInteractionResponse::Acknowledge,
+        )
     }
 }
 
