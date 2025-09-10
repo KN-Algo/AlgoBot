@@ -1,3 +1,4 @@
+use crate::aliases::Result;
 use crate::components::EventCtx;
 use crate::traits::BotCommand;
 use crate::traits::Interactable;
@@ -38,20 +39,20 @@ interactive_msg! {
 
 #[async_trait]
 impl SusMsgHandlerTrait for SusMsgHandler {
-    async fn handle_sus_button(ctx: &mut EventCtx) -> Result<(), serenity::Error> {
+    async fn handle_sus_button(ctx: &mut EventCtx) -> Result {
         ctx.update_msg::<AmongMsg<AmongHandler>>().await
     }
-    async fn handle_sus_button2(ctx: &mut EventCtx) -> Result<(), serenity::Error> {
+    async fn handle_sus_button2(ctx: &mut EventCtx) -> Result {
         log!("pressed sus_button2");
         ctx.acknowlage_interaction().await
     }
 
-    async fn handle_susser(ctx: &mut EventCtx) -> Result<(), serenity::Error> {
+    async fn handle_susser(ctx: &mut EventCtx) -> Result {
         log!("selected susser");
         ctx.acknowlage_interaction().await
     }
 
-    async fn handle_mog(ctx: &mut EventCtx) -> Result<(), serenity::Error> {
+    async fn handle_mog(ctx: &mut EventCtx) -> Result {
         log!("selected mog");
         ctx.acknowlage_interaction().await
     }
@@ -59,14 +60,14 @@ impl SusMsgHandlerTrait for SusMsgHandler {
 
 #[async_trait]
 impl AmongHandlerTrait for AmongHandler {
-    async fn handle_among_button(ctx: &mut EventCtx) -> Result<(), serenity::Error> {
+    async fn handle_among_button(ctx: &mut EventCtx) -> Result {
         ctx.update_msg::<SusMsg<SusMsgHandler>>().await
     }
 }
 
 #[async_trait]
 impl BotCommand for InterTest {
-    async fn run(&self, ctx: &CommandCtx) -> Result<(), serenity::Error> {
+    async fn run(&self, ctx: &CommandCtx) -> Result {
         let mut msg = InteractiveMessage::new::<SusMsg<SusMsgHandler>>(ctx).await?;
         msg.handle_events(&ctx).await
     }

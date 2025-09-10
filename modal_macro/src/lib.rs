@@ -23,12 +23,12 @@ pub fn interactive_msg(input: proc_macro::TokenStream) -> proc_macro::TokenStrea
         match &row.component {
             RowComponent::Input(i) => { 
                 let ident = Ident::new(&format!("handle_{}", i.id.value()), Span::call_site());
-                quote! { async fn #ident(ctx: &mut crate::components::EventCtx) -> Result<(), ::serenity::Error> { Ok(()) } }
+                quote! { async fn #ident(ctx: &mut crate::components::EventCtx) -> ::std::result::Result<(), ::serenity::Error> { Ok(()) } }
             }
             RowComponent::SelectMenu(s) => {
                 let options = s.options.iter().map(|option| {
                     let ident = Ident::new(&format!("handle_{}", option.id.value()), Span::call_site());
-                    quote! { async fn #ident(ctx: &mut crate::components::EventCtx) -> Result<(), ::serenity::Error> { Ok(()) } }
+                    quote! { async fn #ident(ctx: &mut crate::components::EventCtx) -> ::std::result::Result<(), ::serenity::Error> { Ok(()) } }
                 });
 
                 quote! { #(#options)* }
@@ -36,7 +36,7 @@ pub fn interactive_msg(input: proc_macro::TokenStream) -> proc_macro::TokenStrea
             RowComponent::Buttons(b) => {
                 let buttons = b.iter().map(|button| {
                     let ident = Ident::new(&format!("handle_{}", button.id.value()), Span::call_site());
-                    quote! { async fn #ident(ctx: &mut crate::components::EventCtx) -> Result<(), ::serenity::Error> { Ok(()) } }
+                    quote! { async fn #ident(ctx: &mut crate::components::EventCtx) -> ::std::result::Result<(), ::serenity::Error> { Ok(()) } }
                 });
 
                 quote! { #(#buttons)* }
@@ -102,7 +102,7 @@ pub fn interactive_msg(input: proc_macro::TokenStream) -> proc_macro::TokenStrea
                 ::serenity::all::CreateInteractionResponseMessage::new().components(vec![#(#rows),*])
             }
 
-            async fn handle_event(ctx: &mut crate::components::EventCtx) -> Result<(), ::serenity::Error> {
+            async fn handle_event(ctx: &mut crate::components::EventCtx) -> ::std::result::Result<(), ::serenity::Error> {
                 //crate::log!("Running {}", stringify!(#name));
                 match ctx.interaction.data.custom_id.as_str() {
                     #(#handle_func)*
@@ -177,7 +177,7 @@ pub fn modal(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 
         #[::serenity::async_trait]
         impl<'ctx> crate::traits::modal::ModalTrait<'ctx> for #struct_name<'ctx> {
-            async fn execute(ctx: &::serenity::all::Context, id_token: (::serenity::all::InteractionId, &::std::primitive::str)) -> Result<Self, ::serenity::Error> where 'life0: 'ctx {
+            async fn execute(ctx: &::serenity::all::Context, id_token: (::serenity::all::InteractionId, &::std::primitive::str)) -> ::std::result::Result<Self, ::serenity::Error> where 'life0: 'ctx {
                 use ::serenity::builder::Builder;
                 let custom_id = id_token.0.to_string();
                 let modal = ::serenity::builder::CreateModal::new(&custom_id, #title).components(

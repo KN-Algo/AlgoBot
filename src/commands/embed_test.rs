@@ -6,6 +6,7 @@ use serenity::{
 };
 
 use crate::{
+    aliases::Result,
     components::CommandCtx,
     traits::{BotCommand, Interactable, IntoResponse},
 };
@@ -37,7 +38,7 @@ pub struct EmbedTest;
 
 #[async_trait]
 impl BotCommand for EmbedTest {
-    async fn run(&self, ctx: &CommandCtx) -> Result<(), serenity::Error> {
+    async fn run(&self, ctx: &CommandCtx) -> Result {
         ctx.respond(Embed).await
     }
 

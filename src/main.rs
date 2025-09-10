@@ -5,6 +5,7 @@ use crate::{
     handler::Handler,
 };
 
+pub mod aliases;
 pub mod commands;
 pub mod components;
 pub mod handler;

@@ -1,3 +1,4 @@
+use crate::aliases::Result;
 use crate::traits::Interactable;
 use crate::{components::CommandCtx, traits::bot_command::BotCommand};
 use serenity::{all::CreateCommand, async_trait};
@@ -6,7 +7,7 @@ pub struct Ping;
 
 #[async_trait]
 impl BotCommand for Ping {
-    async fn run(&self, ctx: &CommandCtx) -> Result<(), serenity::Error> {
+    async fn run(&self, ctx: &CommandCtx) -> Result {
         ctx.respond("pong!").await
     }
 

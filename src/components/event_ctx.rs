@@ -1,4 +1,5 @@
 use crate::{
+    aliases::Result,
     components::interactive_message::InteractiveMessage,
     traits::{interactable::Interactable, InteractiveMessageTrait},
 };
@@ -13,9 +14,7 @@ pub struct EventCtx<'ctx> {
 }
 
 impl<'ctx> EventCtx<'ctx> {
-    pub fn update_msg<T: InteractiveMessageTrait>(
-        &mut self,
-    ) -> impl Future<Output = Result<(), serenity::Error>> {
+    pub fn update_msg<T: InteractiveMessageTrait>(&mut self) -> impl Future<Output = Result> {
         self.msg.update_msg::<T>(self.discord_ctx, self.interaction)
     }
 }

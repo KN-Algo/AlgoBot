@@ -2,6 +2,7 @@ use serenity::all::{ComponentInteraction, Context, CreateInteractionResponse, Me
 use serenity::futures::StreamExt;
 use std::time::Duration;
 
+use crate::aliases::{Result, TypedResult};
 use crate::components::{CommandCtx, EventCtx};
 use crate::traits::InteractiveMessageTrait;
 
@@ -13,9 +14,8 @@ pub struct InteractiveMessage {
     handler: Box<
         dyn for<'a> Fn(
                 &'a mut EventCtx<'a>,
-            ) -> std::pin::Pin<
-                Box<dyn Future<Output = Result<(), serenity::Error>> + Send + 'a>,
-            > + Send
+            ) -> std::pin::Pin<Box<dyn Future<Output = Result> + Send + 'a>>
+            + Send
             + Sync,
     >,
 }
@@ -23,7 +23,7 @@ pub struct InteractiveMessage {
 impl InteractiveMessage {
     pub async fn new<T: InteractiveMessageTrait + 'static>(
         ctx: &CommandCtx<'_>,
-    ) -> Result<Self, serenity::Error> {
+    ) -> TypedResult<Self> {
         let msg = T::into_msg().ephemeral(true);
 
         let builder = CreateInteractionResponse::Message(msg);
@@ -37,7 +37,7 @@ impl InteractiveMessage {
         })
     }
 
-    pub async fn handle_events(&mut self, ctx: &CommandCtx<'_>) -> Result<(), serenity::Error> {
+    pub async fn handle_events(&mut self, ctx: &CommandCtx<'_>) -> Result {
         let mut interaction_stream = self
             .msg
             .await_component_interaction(&ctx.discord_ctx.shard)
@@ -74,7 +74,7 @@ impl InteractiveMessage {
         &mut self,
         ctx: &Context,
         interaction: &ComponentInteraction,
-    ) -> Result<(), serenity::Error> {
+    ) -> Result {
         let msg = T::into_msg().ephemeral(true);
         interaction
             .create_response(ctx, CreateInteractionResponse::UpdateMessage(msg))
