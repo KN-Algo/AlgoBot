@@ -7,7 +7,50 @@ use sqlx::SqlitePool;
 use crate::{components::CommandCtx, log, log_error, log_warn};
 
 use crate::traits::bot_command::BotCommand;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
+
+async fn add_remove_edit_commands(
+    ctx: &Context,
+    registered: &HashMap<&'static str, Box<dyn BotCommand + Sync + Send>>,
+    global: &[Command],
+) {
+    let global_map: HashMap<&str, &Command> = global.iter().map(|c| (c.name.as_str(), c)).collect();
+
+    let global_set: HashSet<&str> = global_map.keys().copied().collect();
+    let registered_set: HashSet<&str> = registered.keys().copied().collect();
+
+    for key in registered_set.intersection(&global_set) {
+        match Command::edit_global_command(
+            ctx,
+            global_map[key].id,
+            registered[key].register(CreateCommand::new(*key)),
+        )
+        .await
+        {
+            Ok(c) => log!("Command {} updated!", c.name),
+            Err(e) => log_error!("Error updating command {}!", e),
+        }
+    }
+
+    for key in registered_set.difference(&global_set) {
+        match Command::create_global_command(
+            ctx,
+            registered[key].register(CreateCommand::new(*key)),
+        )
+        .await
+        {
+            Ok(c) => log!("Command {} created!", c.name),
+            Err(e) => log_error!("Error creating command {}!", e),
+        }
+    }
+
+    for key in global_set.difference(&registered_set) {
+        match Command::delete_global_command(ctx, global_map[key].id).await {
+            Ok(()) => log!("Command {} removed!", key),
+            Err(e) => log_error!("Error removing command {}!", e),
+        }
+    }
+}
 
 pub struct Handler {
     registered_commands: HashMap<&'static str, Box<dyn BotCommand + Sync + Send>>,
@@ -68,13 +111,14 @@ impl EventHandler for Handler {
     }
 
     async fn ready(&self, ctx: Context, _ready: Ready) {
-        for (name, command) in &self.registered_commands {
-            match Command::create_global_command(&ctx, command.register(CreateCommand::new(*name)))
-                .await
-            {
-                Ok(c) => log!("Command \"{}\" registered!", c.name),
-                Err(e) => log_error!("Error registering command {e}"),
+        let all_global_commands = match Command::get_global_commands(&ctx).await {
+            Ok(commands) => commands,
+            Err(e) => {
+                log_error!("Error fetching global commands: {e}");
+                vec![]
             }
-        }
+        };
+
+        add_remove_edit_commands(&ctx, &self.registered_commands, &all_global_commands).await;
     }
 }
