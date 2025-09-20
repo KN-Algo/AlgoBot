@@ -29,7 +29,7 @@ impl IntoResponse for Embed {
                     ])
                     .footer(CreateEmbedFooter::new("a footer"))
                     .timestamp(Timestamp::now())
-                    .url("example.org"),
+                    .url("https://example.org"),
             )
     }
 }

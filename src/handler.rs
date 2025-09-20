@@ -4,7 +4,7 @@ use serenity::{
 };
 use sqlx::SqlitePool;
 
-use crate::{components::CommandCtx, log, log_error, log_warn};
+use crate::{calendar::CalendarHub, components::CommandCtx, log, log_error, log_warn};
 
 use crate::traits::bot_command::BotCommand;
 use std::collections::{HashMap, HashSet};
@@ -55,13 +55,15 @@ async fn add_remove_edit_commands(
 pub struct Handler {
     registered_commands: HashMap<&'static str, Box<dyn BotCommand + Sync + Send>>,
     db: sqlx::SqlitePool,
+    calendar: CalendarHub,
 }
 
 impl Handler {
-    pub fn new(db: SqlitePool) -> Self {
+    pub fn new(db: SqlitePool, calendar: CalendarHub) -> Self {
         Self {
             registered_commands: HashMap::new(),
             db,
+            calendar,
         }
     }
 

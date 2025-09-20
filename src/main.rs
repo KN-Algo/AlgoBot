@@ -6,6 +6,7 @@ use crate::{
 };
 
 pub mod aliases;
+pub mod calendar;
 pub mod commands;
 pub mod components;
 pub mod handler;
@@ -52,7 +53,18 @@ async fn main() {
         }
     }
 
-    let handler = Handler::new(db)
+    let url = match std::fs::read_to_string("calendar.secret") {
+        Ok(u) => u,
+        Err(e) => {
+            log_error!("Failed to read calendar.secret! {e}");
+            return;
+        }
+    };
+
+    let mut hub = calendar::CalendarHub::new(url);
+    hub.update().await;
+
+    let handler = Handler::new(db, hub)
         .register_command("ping", Ping)
         .register_command("modal_test", ModalTest)
         .register_command("inter_test", InterTest)
