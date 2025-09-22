@@ -21,7 +21,11 @@ impl IntoEmbed for Embed {
 impl Embed {
     fn format_event(embed: CreateEmbed, event: &Event) -> CreateEmbed {
         embed
-            .fields(vec![("When", event.start.to_string(), false)])
+            .fields(vec![(
+                "When",
+                format!("<t:{}:F>", event.start.timestamp()),
+                false,
+            )])
             .title(event.summary.clone())
     }
 
