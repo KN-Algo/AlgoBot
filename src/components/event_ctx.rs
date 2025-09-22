@@ -16,10 +16,11 @@ pub struct EventCtx<'ctx> {
 }
 
 impl<'ctx> EventCtx<'ctx> {
-    pub fn update_msg<T: InteractiveMessageTrait>(&mut self) -> impl Future<Output = Result> {
-        let embeds = T::with_embeds_event(self);
+    pub async fn update_msg<T: InteractiveMessageTrait>(&mut self) -> Result {
+        let embeds = T::with_embeds_event(self).await;
         self.msg
             .update_msg::<T>(self.discord_ctx, self.interaction, embeds)
+            .await
     }
 }
 

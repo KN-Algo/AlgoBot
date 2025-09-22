@@ -34,7 +34,7 @@ impl InteractiveMessage {
         ctx: &CommandCtx<'_>,
         modifier: fn(CreateInteractionResponseMessage) -> CreateInteractionResponseMessage,
     ) -> TypedResult<Self> {
-        let msg = modifier(T::into_msg()).embeds(T::with_embeds_command(ctx));
+        let msg = modifier(T::into_msg()).embeds(T::with_embeds_command(ctx).await);
 
         let builder = CreateInteractionResponse::Message(msg);
         ctx.interaction.create_response(ctx, builder).await?;
