@@ -78,7 +78,7 @@ impl InteractiveMessage {
         let mut interaction_stream = self
             .msg
             .await_component_interaction(&ctx.discord_ctx.shard)
-            .timeout(Duration::from_secs(60))
+            .timeout(Duration::from_secs(600))
             .stream();
 
         while let Some(int) = interaction_stream.next().await {
