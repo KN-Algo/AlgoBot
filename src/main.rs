@@ -61,8 +61,7 @@ async fn main() {
         }
     };
 
-    let mut hub = calendar::CalendarHub::new(url);
-    hub.update().await;
+    let hub = calendar::CalendarHub::new(url).await;
 
     let handler = Handler::new(db, hub)
         .register_command("ping", Ping)

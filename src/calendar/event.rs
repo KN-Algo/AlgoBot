@@ -5,9 +5,9 @@ use crate::{calendar::CalendarParser, map_properties};
 
 #[derive(Debug)]
 pub struct Event {
-    uid: String,
-    summary: String,
-    start: DateTime<Utc>,
+    pub uid: String,
+    pub summary: String,
+    pub start: DateTime<Utc>,
 }
 
 impl TryFrom<IcalEvent> for Event {

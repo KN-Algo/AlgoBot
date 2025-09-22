@@ -8,10 +8,10 @@ use crate::{calendar::Event, map_properties};
 
 #[derive(Debug)]
 pub struct Calendar {
-    name: String,
-    description: String,
-    events: Vec<Event>,
-    timezone: Tz,
+    pub name: String,
+    pub description: String,
+    pub events: Vec<Event>,
+    pub timezone: Tz,
 }
 
 impl TryFrom<IcalCalendar> for Calendar {
