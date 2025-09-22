@@ -26,7 +26,7 @@ impl Default for State {
 }
 
 interactive_msg! {
-    <AllEvents handler=Handler>
+    <AllEvents handler=Handler ephemeral=true>
         <embed>Embed</embed>
         <row>
             <button id="prev">"<"</button>

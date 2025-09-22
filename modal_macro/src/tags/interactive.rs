@@ -1,6 +1,8 @@
 use crate::misc::{AttrValue, ClosingTag};
 use crate::tags::*;
 
+use proc_macro2::Span;
+use syn::LitBool;
 use syn::{parse::Parse, Ident, Token};
 
 pub struct InteractiveTag {
@@ -8,6 +10,7 @@ pub struct InteractiveTag {
     pub rows: Vec<RowTag>,
     pub embeds: Vec<EmbedTag>,
     pub handler_name: Ident,
+    pub ephemeral: LitBool,
 }
 
 impl Parse for InteractiveTag {
@@ -49,11 +52,23 @@ impl Parse for InteractiveTag {
             AttrValue::Ident(i) => i,
         };
 
+        let ephemeral = match tag.attr("ephemeral") {
+            Some(v) => match v {
+                AttrValue::Lit(l) => match l {
+                    syn::Lit::Bool(b) => b,
+                    _ => return Err(syn::Error::new(l.span(), "Should be a bool")),
+                },
+                AttrValue::Ident(i) => return Err(syn::Error::new(i.span(), "Should be a bool")),
+            },
+            None => LitBool::new(false, Span::call_site()),
+        };
+
         Ok(Self {
             struct_name: tag.name,
             rows,
             handler_name,
             embeds,
+            ephemeral,
         })
     }
 }
