@@ -6,7 +6,7 @@ use ical::parser::ical::component::IcalCalendar;
 
 use crate::{calendar::Event, map_properties};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Calendar {
     pub name: String,
     pub description: String,

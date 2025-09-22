@@ -3,7 +3,7 @@ use ical::parser::ical::component::IcalEvent;
 
 use crate::{calendar::CalendarParser, map_properties};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Event {
     pub uid: String,
     pub summary: String,
