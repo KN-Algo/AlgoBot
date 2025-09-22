@@ -1,5 +1,6 @@
 use crate::{
     aliases::Result,
+    calendar::CalendarHub,
     components::interactive_message::InteractiveMessage,
     traits::{interactable::Interactable, InteractiveMessageTrait},
 };
@@ -11,6 +12,7 @@ pub struct EventCtx<'ctx> {
     pub interaction: &'ctx ComponentInteraction,
     pub msg: &'ctx mut InteractiveMessage,
     pub db: &'ctx SqlitePool,
+    pub calendars: &'ctx CalendarHub,
 }
 
 impl<'ctx> EventCtx<'ctx> {

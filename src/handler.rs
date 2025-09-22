@@ -89,6 +89,7 @@ impl Handler {
             discord_ctx: ctx,
             interaction: &command,
             db: &self.db,
+            calendars: &self.calendar,
         };
 
         match comm.run(&new_ctx).await {

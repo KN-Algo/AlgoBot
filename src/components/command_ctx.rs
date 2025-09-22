@@ -1,12 +1,13 @@
 use serenity::all::{CacheHttp, CommandInteraction, Context};
 use sqlx::SqlitePool;
 
-use crate::traits::interactable::Interactable;
+use crate::{calendar::CalendarHub, traits::interactable::Interactable};
 
 pub struct CommandCtx<'ctx> {
     pub discord_ctx: &'ctx Context,
     pub interaction: &'ctx CommandInteraction,
     pub db: &'ctx SqlitePool,
+    pub calendars: &'ctx CalendarHub,
 }
 
 impl<'ctx> Interactable<'ctx> for CommandCtx<'ctx> {

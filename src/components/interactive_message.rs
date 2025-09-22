@@ -64,6 +64,7 @@ impl InteractiveMessage {
                 interaction: &int,
                 msg: self,
                 db: ctx.db,
+                calendars: ctx.calendars,
             };
 
             handler(&mut new_ctx).await?;
