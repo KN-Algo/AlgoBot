@@ -16,6 +16,7 @@ use crate::traits::InteractiveMessageTrait;
 macro_rules! get_state {
     ($ctx:ident, $type:ident, $var:ident) => {
         let arc = $ctx.msg.state::<$type>().await.unwrap().clone();
+        #[allow(unused_mut)]
         let mut $var = arc.lock().await;
     };
 }

@@ -118,7 +118,7 @@ pub fn interactive_msg(input: proc_macro::TokenStream) -> proc_macro::TokenStrea
                 ::std::vec![#(#embeds_comm::from_command(ctx).await)*]
             }
 
-            async fn with_embeds_event(ctx: &crate::components::EventCtx) -> ::std::vec::Vec<::serenity::all::CreateEmbed> {
+            async fn with_embeds_event(ctx: &mut crate::components::EventCtx) -> ::std::vec::Vec<::serenity::all::CreateEmbed> {
                 ::std::vec![#(#embeds_event::from_event(ctx).await)*]
             }
 

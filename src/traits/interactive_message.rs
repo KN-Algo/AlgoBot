@@ -12,6 +12,6 @@ use crate::{
 pub trait InteractiveMessageTrait {
     fn into_msg() -> CreateInteractionResponseMessage;
     async fn with_embeds_command(ctx: &CommandCtx) -> Vec<CreateEmbed>;
-    async fn with_embeds_event(ctx: &EventCtx) -> Vec<CreateEmbed>;
+    async fn with_embeds_event(ctx: &mut EventCtx) -> Vec<CreateEmbed>;
     async fn handle_event(ctx: &mut EventCtx) -> Result;
 }
