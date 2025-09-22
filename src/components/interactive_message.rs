@@ -6,7 +6,7 @@ use serenity::futures::StreamExt;
 use std::any::Any;
 use std::sync::Arc;
 use std::time::Duration;
-use tokio::sync::Mutex;
+use tokio::sync::RwLock;
 
 use crate::aliases::{Result, TypedResult};
 use crate::components::{CommandCtx, EventCtx};
@@ -17,7 +17,18 @@ macro_rules! get_state {
     ($ctx:ident, $type:ident, $var:ident) => {
         let arc = $ctx.msg.state::<$type>().await.unwrap().clone();
         #[allow(unused_mut)]
-        let mut $var = arc.lock().await;
+        let mut $var = (arc.read().await).clone();
+        drop(arc);
+    };
+}
+
+#[macro_export]
+macro_rules! write_state {
+    ($ctx:ident, $type:ident, $val:expr) => {
+        let arc = $ctx.msg.state::<$type>().await.unwrap().clone();
+        let mut sus = arc.write().await;
+        *sus = $val;
+        drop(sus);
     };
 }
 
@@ -39,12 +50,12 @@ pub struct InteractiveMessage {
 impl InteractiveMessage {
     pub async fn new_with_state<
         T: InteractiveMessageTrait + 'static,
-        State: Default + Send + Sync + 'static,
+        State: Clone + Default + Send + Sync + 'static,
     >(
         ctx: &CommandCtx<'_>,
     ) -> TypedResult<Self> {
         let mut s = Self::new::<T>(ctx).await?;
-        s.state = Some(Arc::new(Mutex::new(State::default())));
+        s.state = Some(Arc::new(RwLock::new(State::default())));
         Ok(s)
     }
 
@@ -132,8 +143,8 @@ impl InteractiveMessage {
 
     pub async fn state<State: Default + Send + Sync + 'static>(
         &mut self,
-    ) -> Option<Arc<Mutex<State>>> {
+    ) -> Option<Arc<RwLock<State>>> {
         let arc = self.state.clone()?;
-        arc.downcast::<Mutex<State>>().ok()
+        arc.downcast::<RwLock<State>>().ok()
     }
 }

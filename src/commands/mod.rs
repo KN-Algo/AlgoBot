@@ -3,6 +3,8 @@ pub mod interactive_test;
 pub mod modal_test;
 pub mod ping;
 
+pub mod events;
+
 pub use embed_test::EmbedTest;
 pub use interactive_test::InterTest;
 pub use modal_test::ModalTest;

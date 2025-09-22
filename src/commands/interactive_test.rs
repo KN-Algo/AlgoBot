@@ -1,15 +1,22 @@
 use crate::aliases::Result;
+use crate::calendar::CalendarHub;
 use crate::components::EventCtx;
 use crate::components::{CommandCtx, InteractiveMessage};
 use crate::traits::into_embed::IntoEmbedInteractive;
 use crate::traits::Interactable;
 use crate::traits::{BotCommand, IntoEmbed};
+use crate::{get_state, write_state};
 use modal_macro::interactive_msg;
 use modal_macro::modal;
 use serenity::all::{CreateEmbed, CreateEmbedFooter, Timestamp};
 use serenity::{all::CreateCommand, async_trait};
 
 pub struct InterTest;
+
+#[derive(Default, Clone)]
+struct InteractiveState {
+    counter: u16,
+}
 
 struct EmbedTest;
 
@@ -24,15 +31,32 @@ impl IntoEmbed for EmbedTest {
     }
 }
 
+impl EmbedTest {
+    async fn create(calendars: &CalendarHub) -> CreateEmbed {
+        let embed = Self::into_embed();
+        match calendars.get_calendar("KN ALGO").await {
+            None => embed.fields(vec![("Error", "Calendar Not Found", false)]),
+            Some(c) => {
+                let fields = c
+                    .events
+                    .iter()
+                    .cloned()
+                    .map(|event| (event.start.to_string(), event.summary, false))
+                    .collect::<Vec<(String, String, bool)>>();
+                return embed.fields(fields);
+            }
+        }
+    }
+}
+
 #[async_trait]
 impl IntoEmbedInteractive for EmbedTest {
-    async fn from_event(ctx: &EventCtx) -> CreateEmbed {
-        let cal = ctx.calendars.get_calendar("").await;
-        Self::into_embed()
+    async fn from_event(ctx: &mut EventCtx) -> CreateEmbed {
+        Self::create(ctx.calendars).await
     }
 
     async fn from_command(ctx: &CommandCtx) -> CreateEmbed {
-        Self::into_embed()
+        Self::create(ctx.calendars).await
     }
 }
 
@@ -82,7 +106,11 @@ impl SusMsgHandlerTrait for SusMsgHandler {
     }
 
     async fn handle_sus_button3(ctx: &mut EventCtx) -> Result {
-        ctx.acknowlage().await
+        get_state!(ctx, InteractiveState, state);
+        state.counter += 1;
+        let r = ctx.respond(format!("{}", state.counter)).await;
+        write_state!(ctx, InteractiveState, state);
+        r
     }
 
     async fn handle_susser(ctx: &mut EventCtx) -> Result {
@@ -104,7 +132,9 @@ impl AmongHandlerTrait for AmongHandler {
 #[async_trait]
 impl BotCommand for InterTest {
     async fn run(&self, ctx: &CommandCtx) -> Result {
-        let mut msg = InteractiveMessage::new::<SusMsg<SusMsgHandler>>(ctx).await?;
+        let mut msg =
+            InteractiveMessage::new_with_state::<SusMsg<SusMsgHandler>, InteractiveState>(ctx)
+                .await?;
         msg.handle_events(&ctx).await
     }
 
