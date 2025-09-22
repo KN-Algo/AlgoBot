@@ -1,5 +1,6 @@
 use serenity::all::{
-    ComponentInteraction, Context, CreateInteractionResponse, Message, MessageFlags,
+    ComponentInteraction, Context, CreateEmbed, CreateInteractionResponse,
+    CreateInteractionResponseMessage, Message, MessageFlags,
 };
 use serenity::futures::StreamExt;
 use std::time::Duration;
@@ -26,7 +27,14 @@ impl InteractiveMessage {
     pub async fn new<T: InteractiveMessageTrait + 'static>(
         ctx: &CommandCtx<'_>,
     ) -> TypedResult<Self> {
-        let msg = T::into_msg().ephemeral(true);
+        Self::new_modify::<T>(ctx, |m| m).await
+    }
+
+    pub async fn new_modify<T: InteractiveMessageTrait + 'static>(
+        ctx: &CommandCtx<'_>,
+        modifier: fn(CreateInteractionResponseMessage) -> CreateInteractionResponseMessage,
+    ) -> TypedResult<Self> {
+        let msg = modifier(T::into_msg()).embeds(T::with_embeds_command(ctx));
 
         let builder = CreateInteractionResponse::Message(msg);
         ctx.interaction.create_response(ctx, builder).await?;
@@ -43,7 +51,7 @@ impl InteractiveMessage {
         let mut interaction_stream = self
             .msg
             .await_component_interaction(&ctx.discord_ctx.shard)
-            .timeout(Duration::from_secs(1))
+            .timeout(Duration::from_secs(60))
             .stream();
 
         while let Some(int) = interaction_stream.next().await {
@@ -79,17 +87,29 @@ impl InteractiveMessage {
         Ok(())
     }
 
-    pub async fn update_msg<T: InteractiveMessageTrait>(
+    pub async fn update_msg_modify<T: InteractiveMessageTrait>(
         &mut self,
         ctx: &Context,
         interaction: &ComponentInteraction,
+        embeds: Vec<CreateEmbed>,
+        modifier: fn(CreateInteractionResponseMessage) -> CreateInteractionResponseMessage,
     ) -> Result {
-        let msg = T::into_msg().ephemeral(true);
+        let msg = modifier(T::into_msg()).embeds(embeds);
         interaction
             .create_response(ctx, CreateInteractionResponse::UpdateMessage(msg))
             .await?;
         self.handler = Box::new(|c| Box::pin(T::handle_event(c)));
         self.has_handler_mutated = true;
         Ok(())
+    }
+
+    pub async fn update_msg<T: InteractiveMessageTrait>(
+        &mut self,
+        ctx: &Context,
+        interaction: &ComponentInteraction,
+        embeds: Vec<CreateEmbed>,
+    ) -> Result {
+        self.update_msg_modify::<T>(ctx, interaction, embeds, |m| m)
+            .await
     }
 }

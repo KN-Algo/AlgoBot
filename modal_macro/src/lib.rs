@@ -19,6 +19,15 @@ pub fn interactive_msg(input: proc_macro::TokenStream) -> proc_macro::TokenStrea
     let rows = struct_tag.rows;
     let name = struct_tag.struct_name;
 
+
+    let embeds = struct_tag.embeds;
+    let embeds_comm = embeds.clone().into_iter().map(|tag| {
+        tag.embed_name
+    });
+    let embeds_event = embeds.into_iter().map(|tag| {
+        tag.embed_name
+    });
+
     let trait_funcs = rows.iter().map(|row| {
         match &row.component {
             RowComponent::Input(i) => { 
@@ -103,6 +112,14 @@ pub fn interactive_msg(input: proc_macro::TokenStream) -> proc_macro::TokenStrea
         impl<Handler: #merged_handler_trait_ident> crate::traits::InteractiveMessageTrait for #name<Handler> {
             fn into_msg() -> ::serenity::all::CreateInteractionResponseMessage {
                 ::serenity::all::CreateInteractionResponseMessage::new().components(vec![#(#rows),*])
+            }
+
+            fn with_embeds_command(ctx: &crate::components::CommandCtx) -> ::std::vec::Vec<::serenity::all::CreateEmbed> {
+                ::std::vec![#(#embeds_comm::from_command(ctx))*]
+            }
+
+            fn with_embeds_event(ctx: &crate::components::EventCtx) -> ::std::vec::Vec<::serenity::all::CreateEmbed> {
+                ::std::vec![#(#embeds_event::from_event(ctx))*]
             }
 
             async fn handle_event(ctx: &mut crate::components::EventCtx) -> ::std::result::Result<(), ::serenity::Error> {

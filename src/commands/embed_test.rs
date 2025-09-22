@@ -1,36 +1,30 @@
 use serenity::{
-    all::{
-        CreateCommand, CreateEmbed, CreateEmbedFooter, CreateInteractionResponseMessage, Timestamp,
-    },
+    all::{CreateCommand, CreateEmbed, CreateEmbedFooter, Timestamp},
     async_trait,
 };
 
 use crate::{
     aliases::Result,
     components::CommandCtx,
-    traits::{BotCommand, Interactable, IntoResponse},
+    traits::{BotCommand, Interactable, IntoEmbed},
 };
 
 struct Embed;
 
-impl IntoResponse for Embed {
-    fn into_msg(&self) -> CreateInteractionResponseMessage {
-        CreateInteractionResponseMessage::new()
-            .content("embed")
-            .embed(
-                CreateEmbed::new()
-                    .title("Test Embed")
-                    .description("this a test embed")
-                    .color(serenity::model::Colour::FOOYOO)
-                    .fields([
-                        ("name", "value", false),
-                        ("inline1", "inline", true),
-                        ("inline2", "inline", true),
-                    ])
-                    .footer(CreateEmbedFooter::new("a footer"))
-                    .timestamp(Timestamp::now())
-                    .url("https://example.org"),
-            )
+impl IntoEmbed for Embed {
+    fn into_embed() -> CreateEmbed {
+        CreateEmbed::new()
+            .title("Test Embed")
+            .description("this a test embed")
+            .color(serenity::model::Colour::FOOYOO)
+            .fields([
+                ("name", "value", false),
+                ("inline1", "inline", true),
+                ("inline2", "inline", true),
+            ])
+            .footer(CreateEmbedFooter::new("a footer"))
+            .timestamp(Timestamp::now())
+            .url("https://example.org")
     }
 }
 

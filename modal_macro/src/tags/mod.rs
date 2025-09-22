@@ -1,4 +1,5 @@
 pub mod button;
+pub mod embed;
 pub mod input;
 pub mod interactive;
 pub mod modal;
@@ -9,6 +10,7 @@ pub mod selection;
 pub mod tag;
 
 pub use button::ButtonTag;
+pub use embed::EmbedTag;
 pub use input::InputTag;
 pub use interactive::InteractiveTag;
 pub use modal::ModalTag;

@@ -1,13 +1,38 @@
 use crate::aliases::Result;
 use crate::components::EventCtx;
 use crate::components::{CommandCtx, InteractiveMessage};
-use crate::traits::BotCommand;
+use crate::traits::into_embed::IntoEmbedInteractive;
 use crate::traits::Interactable;
+use crate::traits::{BotCommand, IntoEmbed};
 use modal_macro::interactive_msg;
 use modal_macro::modal;
+use serenity::all::{CreateEmbed, CreateEmbedFooter, Timestamp};
 use serenity::{all::CreateCommand, async_trait};
 
 pub struct InterTest;
+
+struct EmbedTest;
+
+impl IntoEmbed for EmbedTest {
+    fn into_embed() -> serenity::all::CreateEmbed {
+        CreateEmbed::new()
+            .title("hiiii :3333")
+            .description("henlo :333")
+            .color(serenity::model::Colour::MEIBE_PINK)
+            .footer(CreateEmbedFooter::new("byeee <3"))
+            .timestamp(Timestamp::now())
+    }
+}
+
+impl IntoEmbedInteractive for EmbedTest {
+    fn from_event(ctx: &EventCtx) -> CreateEmbed {
+        Self::into_embed()
+    }
+
+    fn from_command(ctx: &CommandCtx) -> CreateEmbed {
+        Self::into_embed()
+    }
+}
 
 interactive_msg! {
     <SusMsg handler=SusMsgHandler>
@@ -29,6 +54,7 @@ interactive_msg! {
 
 interactive_msg! {
     <AmongMsg handler=AmongHandler>
+        <embed>EmbedTest</embed>
         <row>
             <button id="among_button" style="primary">"back"</button>
         </row>
