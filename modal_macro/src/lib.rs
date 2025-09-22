@@ -114,12 +114,12 @@ pub fn interactive_msg(input: proc_macro::TokenStream) -> proc_macro::TokenStrea
                 ::serenity::all::CreateInteractionResponseMessage::new().components(vec![#(#rows),*])
             }
 
-            fn with_embeds_command(ctx: &crate::components::CommandCtx) -> ::std::vec::Vec<::serenity::all::CreateEmbed> {
-                ::std::vec![#(#embeds_comm::from_command(ctx))*]
+            async fn with_embeds_command(ctx: &crate::components::CommandCtx) -> ::std::vec::Vec<::serenity::all::CreateEmbed> {
+                ::std::vec![#(#embeds_comm::from_command(ctx).await)*]
             }
 
-            fn with_embeds_event(ctx: &crate::components::EventCtx) -> ::std::vec::Vec<::serenity::all::CreateEmbed> {
-                ::std::vec![#(#embeds_event::from_event(ctx))*]
+            async fn with_embeds_event(ctx: &crate::components::EventCtx) -> ::std::vec::Vec<::serenity::all::CreateEmbed> {
+                ::std::vec![#(#embeds_event::from_event(ctx).await)*]
             }
 
             async fn handle_event(ctx: &mut crate::components::EventCtx) -> ::std::result::Result<(), ::serenity::Error> {

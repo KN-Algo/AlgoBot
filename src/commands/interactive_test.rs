@@ -24,12 +24,14 @@ impl IntoEmbed for EmbedTest {
     }
 }
 
+#[async_trait]
 impl IntoEmbedInteractive for EmbedTest {
-    fn from_event(ctx: &EventCtx) -> CreateEmbed {
+    async fn from_event(ctx: &EventCtx) -> CreateEmbed {
+        let cal = ctx.calendars.get_calendar("").await;
         Self::into_embed()
     }
 
-    fn from_command(ctx: &CommandCtx) -> CreateEmbed {
+    async fn from_command(ctx: &CommandCtx) -> CreateEmbed {
         Self::into_embed()
     }
 }

@@ -1,4 +1,7 @@
-use serenity::all::{CreateEmbed, CreateInteractionResponseMessage};
+use serenity::{
+    all::{CreateEmbed, CreateInteractionResponseMessage},
+    async_trait,
+};
 
 use crate::{
     components::{CommandCtx, EventCtx},
@@ -15,7 +18,8 @@ impl<T: IntoEmbed> IntoResponse for T {
     }
 }
 
+#[async_trait]
 pub trait IntoEmbedInteractive {
-    fn from_command(ctx: &CommandCtx) -> CreateEmbed;
-    fn from_event(ctx: &EventCtx) -> CreateEmbed;
+    async fn from_command(ctx: &CommandCtx) -> CreateEmbed;
+    async fn from_event(ctx: &EventCtx) -> CreateEmbed;
 }
