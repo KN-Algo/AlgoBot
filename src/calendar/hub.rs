@@ -35,7 +35,10 @@ impl CalendarHub {
             }
             Ok(v) => match v {
                 Ok(r) => match r {
-                    Ok(c) => c.into_iter().map(Arc::new).collect(),
+                    Ok(mut c) => {
+                        c.iter_mut().for_each(|cal| cal.events.sort_unstable());
+                        c.into_iter().map(Arc::new).collect()
+                    }
                     Err(e) => {
                         log_error!("Failed to update calendar! {e}");
                         return;

@@ -10,6 +10,26 @@ pub struct Event {
     pub start: DateTime<Utc>,
 }
 
+impl PartialEq for Event {
+    fn eq(&self, other: &Self) -> bool {
+        self.start == other.start
+    }
+}
+
+impl Eq for Event {}
+
+impl PartialOrd for Event {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        self.start.partial_cmp(&other.start)
+    }
+}
+
+impl Ord for Event {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.start.cmp(&other.start)
+    }
+}
+
 impl TryFrom<IcalEvent> for Event {
     type Error = chrono::ParseError;
     fn try_from(value: IcalEvent) -> Result<Self, Self::Error> {
