@@ -3,14 +3,26 @@ use serenity::all::{
     CreateInteractionResponseMessage, Message, MessageFlags,
 };
 use serenity::futures::StreamExt;
+use std::any::Any;
+use std::sync::Arc;
 use std::time::Duration;
+use tokio::sync::Mutex;
 
 use crate::aliases::{Result, TypedResult};
 use crate::components::{CommandCtx, EventCtx};
 use crate::traits::InteractiveMessageTrait;
 
+#[macro_export]
+macro_rules! get_state {
+    ($ctx:ident, $type:ident, $var:ident) => {
+        let arc = $ctx.msg.state::<$type>().await.unwrap().clone();
+        let mut $var = arc.lock().await;
+    };
+}
+
 pub struct InteractiveMessage {
     msg: Message,
+    state: Option<Arc<dyn Any + Send + Sync>>,
 
     //i hate this
     has_handler_mutated: bool,
@@ -24,17 +36,19 @@ pub struct InteractiveMessage {
 }
 
 impl InteractiveMessage {
-    pub async fn new<T: InteractiveMessageTrait + 'static>(
+    pub async fn new_with_state<
+        T: InteractiveMessageTrait + 'static,
+        State: Default + Send + Sync + 'static,
+    >(
         ctx: &CommandCtx<'_>,
     ) -> TypedResult<Self> {
-        Self::new_modify::<T>(ctx, |m| m).await
+        let mut s = Self::new::<T>(ctx).await?;
+        s.state = Some(Arc::new(Mutex::new(State::default())));
+        Ok(s)
     }
 
-    pub async fn new_modify<T: InteractiveMessageTrait + 'static>(
-        ctx: &CommandCtx<'_>,
-        modifier: fn(CreateInteractionResponseMessage) -> CreateInteractionResponseMessage,
-    ) -> TypedResult<Self> {
-        let msg = modifier(T::into_msg()).embeds(T::with_embeds_command(ctx).await);
+    async fn new<T: InteractiveMessageTrait + 'static>(ctx: &CommandCtx<'_>) -> TypedResult<Self> {
+        let msg = T::into_msg().embeds(T::with_embeds_command(ctx).await);
 
         let builder = CreateInteractionResponse::Message(msg);
         ctx.interaction.create_response(ctx, builder).await?;
@@ -42,6 +56,7 @@ impl InteractiveMessage {
 
         Ok(Self {
             msg: m,
+            state: None,
             has_handler_mutated: false,
             handler: Box::new(|c| Box::pin(T::handle_event(c))),
         })
@@ -112,5 +127,12 @@ impl InteractiveMessage {
     ) -> Result {
         self.update_msg_modify::<T>(ctx, interaction, embeds, |m| m)
             .await
+    }
+
+    pub async fn state<State: Default + Send + Sync + 'static>(
+        &mut self,
+    ) -> Option<Arc<Mutex<State>>> {
+        let arc = self.state.clone()?;
+        arc.downcast::<Mutex<State>>().ok()
     }
 }
