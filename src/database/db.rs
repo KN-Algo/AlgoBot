@@ -1,10 +1,11 @@
 use std::collections::HashMap;
 
 use chrono::{DateTime, TimeZone, Utc};
+use serenity::all::UserId;
 use sqlx::{Pool, Sqlite};
 
 use crate::{
-    database::{Reminder, Task},
+    database::{EventReminder, Reminder, ReminderWay, Task},
     log, log_error,
 };
 
@@ -52,17 +53,16 @@ impl Db {
         Ok(Self { pool: db })
     }
 
-    async fn insert_user(&self, discord_id: &str) -> Result<(), sqlx::Error> {
-        sqlx::query!(
-            "INSERT OR IGNORE INTO users (discord_id) VALUES (?)",
-            discord_id
-        )
-        .execute(&self.pool)
-        .await
-        .map(|_| ())
+    async fn insert_user(&self, discord_id: UserId) -> Result<(), sqlx::Error> {
+        let id: i64 = discord_id.into();
+        sqlx::query!("INSERT OR IGNORE INTO users (discord_id) VALUES (?)", id)
+            .execute(&self.pool)
+            .await
+            .map(|_| ())
     }
 
-    async fn get_user_tasks(&self, discord_id: &str) -> Result<Vec<Task>, sqlx::Error> {
+    async fn get_user_tasks(&self, discord_id: UserId) -> Result<Vec<Task>, sqlx::Error> {
+        let id: i64 = discord_id.into();
         self.insert_user(discord_id).await?;
         let rows = sqlx::query!(
             r#"
@@ -80,7 +80,7 @@ impl Db {
         LEFT JOIN reminders r ON r.task = t.id
         WHERE tt.user_id = ?
         "#,
-            discord_id
+            id
         )
         .fetch_all(&self.pool)
         .await?;
@@ -122,7 +122,7 @@ impl Db {
         title: &str,
         description: Option<&str>,
         deadline: DateTime<Utc>,
-        targets: Vec<String>,
+        targets: Vec<UserId>,
     ) -> Result<(), sqlx::Error> {
         let mut transaction = self.pool.begin().await?;
 
@@ -141,14 +141,15 @@ impl Db {
             .await?;
 
         for target in targets {
-            self.insert_user(&target).await?;
+            let id: i64 = target.into();
+            self.insert_user(target).await?;
             sqlx::query!(
                 r#"
                 INSERT INTO task_targets (task_id, user_id)
                 VALUES (?, ?)
                 "#,
                 task_id,
-                target
+                id
             )
             .execute(&mut *transaction)
             .await?;
@@ -184,5 +185,49 @@ impl Db {
         .execute(&self.pool)
         .await
         .map(|_| ())
+    }
+
+    pub async fn add_event_reminder(
+        &self,
+        discord_id: UserId,
+        way: ReminderWay,
+        email: Option<String>,
+    ) -> Result<(), sqlx::Error> {
+        let id: i64 = discord_id.into();
+        self.insert_user(discord_id).await?;
+        sqlx::query!(
+            r#"
+                INSERT INTO event_reminders (user_id, way, email)
+                VALUES (?, ?, ?)
+                "#,
+            id,
+            way,
+            email
+        )
+        .execute(&self.pool)
+        .await
+        .map(|_| ())
+    }
+
+    pub async fn delete_event_reminder(&self, discord_id: UserId) -> Result<(), sqlx::Error> {
+        let id: i64 = discord_id.into();
+        sqlx::query!(
+            r#"
+                DELETE FROM event_reminders WHERE user_id = ?
+            "#,
+            id,
+        )
+        .execute(&self.pool)
+        .await
+        .map(|_| ())
+    }
+
+    pub async fn fetch_event_reminders(&self) -> Result<Vec<EventReminder>, sqlx::Error> {
+        sqlx::query_as!(
+            EventReminder,
+            r#"SELECT id, user_id, way as "way: ReminderWay", email FROM event_reminders"#
+        )
+        .fetch_all(&self.pool)
+        .await
     }
 }

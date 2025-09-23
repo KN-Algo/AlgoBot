@@ -3,7 +3,7 @@
 PRAGMA foreign_keys = ON;
 
 CREATE TABLE users (
-    discord_id TEXT PRIMARY KEY
+    discord_id INTEGER PRIMARY KEY
 );
 
 CREATE TABLE tasks (
@@ -16,7 +16,7 @@ CREATE TABLE tasks (
 
 CREATE TABLE task_targets (
     task_id INTEGER NOT NULL,
-    user_id TEXT NOT NULL,
+    user_id INTEGER NOT NULL,
     PRIMARY KEY (task_id, user_id),
     FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE,
     FOREIGN KEY (user_id) REFERENCES users(discord_id) ON DELETE CASCADE
@@ -27,6 +27,14 @@ CREATE TABLE reminders (
     task INTEGER NOT NULL,
     when_unixtimestamp INTEGER NOT NULL,
     FOREIGN KEY (task) REFERENCES tasks(id) ON DELETE CASCADE
+);
+
+CREATE TABLE event_reminders (
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    way INTEGER NOT NULL,
+    email TEXT,
+    FOREIGN KEY (user_id) REFERENCES users(discord_id) ON DELETE CASCADE
 );
 
 CREATE INDEX idx_reminders_task ON reminders(task);
