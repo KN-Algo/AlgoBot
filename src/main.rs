@@ -2,6 +2,7 @@ use serenity::{all::GatewayIntents, Client};
 
 use crate::{
     commands::{events::command::EventsCommand, EmbedTest, InterTest, ModalTest, Ping},
+    components::Db,
     handler::Handler,
 };
 
@@ -26,33 +27,6 @@ async fn main() {
 
     let intents = GatewayIntents::non_privileged() | GatewayIntents::MESSAGE_CONTENT;
 
-    let db = match sqlx::sqlite::SqlitePoolOptions::new()
-        .max_connections(5)
-        .connect_with(
-            sqlx::sqlite::SqliteConnectOptions::new()
-                .filename("bot_db.sqlite")
-                .create_if_missing(true),
-        )
-        .await
-    {
-        Ok(db) => {
-            log!("Connected to the database!");
-            db
-        }
-        Err(e) => {
-            log_error!("Couldn't connect to the database!: {e}");
-            return;
-        }
-    };
-
-    match sqlx::migrate!("./migrations").run(&db).await {
-        Ok(()) => log!("Successfully applied migrations!"),
-        Err(e) => {
-            log_error!("Migrations failed! {e}");
-            return;
-        }
-    }
-
     let url = match std::fs::read_to_string("calendar.secret") {
         Ok(u) => u,
         Err(e) => {
@@ -62,6 +36,13 @@ async fn main() {
     };
 
     let hub = calendar::CalendarHub::new(url).await;
+    let db = match Db::new("bot_db.sqlite", 5).await {
+        Ok(db) => db,
+        Err(e) => {
+            log_error!("Database Error! {e}");
+            return;
+        }
+    };
 
     let handler = Handler::new(db, hub)
         .register_command("ping", Ping)

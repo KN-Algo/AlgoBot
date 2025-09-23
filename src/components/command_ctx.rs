@@ -1,12 +1,11 @@
 use serenity::all::{CacheHttp, CommandInteraction, Context};
-use sqlx::SqlitePool;
 
-use crate::{calendar::CalendarHub, traits::interactable::Interactable};
+use crate::{calendar::CalendarHub, components::Db, traits::interactable::Interactable};
 
 pub struct CommandCtx<'ctx> {
     pub discord_ctx: &'ctx Context,
     pub interaction: &'ctx CommandInteraction,
-    pub db: &'ctx SqlitePool,
+    pub db: &'ctx Db,
     pub calendars: &'ctx CalendarHub,
 }
 
@@ -38,7 +37,7 @@ impl<'a> From<&CommandCtx<'a>> for &'a CommandInteraction {
     }
 }
 
-impl<'a> From<&CommandCtx<'a>> for &'a SqlitePool {
+impl<'a> From<&CommandCtx<'a>> for &'a Db {
     fn from(value: &CommandCtx<'a>) -> Self {
         value.db
     }

@@ -1,17 +1,16 @@
 use crate::{
     aliases::Result,
     calendar::CalendarHub,
-    components::interactive_message::InteractiveMessage,
+    components::{interactive_message::InteractiveMessage, Db},
     traits::{interactable::Interactable, InteractiveMessageTrait},
 };
 use serenity::all::{CacheHttp, ComponentInteraction, Context};
-use sqlx::SqlitePool;
 
 pub struct EventCtx<'ctx> {
     pub discord_ctx: &'ctx Context,
     pub interaction: &'ctx ComponentInteraction,
     pub msg: &'ctx mut InteractiveMessage,
-    pub db: &'ctx SqlitePool,
+    pub db: &'ctx Db,
     pub calendars: &'ctx CalendarHub,
 }
 
@@ -52,7 +51,7 @@ impl<'a> From<&EventCtx<'a>> for &'a ComponentInteraction {
     }
 }
 
-impl<'a> From<&EventCtx<'a>> for &'a SqlitePool {
+impl<'a> From<&EventCtx<'a>> for &'a Db {
     fn from(value: &EventCtx<'a>) -> Self {
         value.db
     }
