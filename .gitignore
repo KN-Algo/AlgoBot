@@ -16,3 +16,4 @@ token
 bot_db.sqlite*
 
 calendar.secret
+todo

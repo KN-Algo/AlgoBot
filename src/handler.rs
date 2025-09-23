@@ -2,7 +2,6 @@ use serenity::{
     all::{Command, CommandInteraction, Context, CreateCommand, EventHandler, Interaction, Ready},
     async_trait,
 };
-use sqlx::SqlitePool;
 
 use crate::{
     calendar::CalendarHub,
