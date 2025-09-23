@@ -7,9 +7,10 @@ CREATE TABLE users (
 );
 
 CREATE TABLE tasks (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     title TEXT NOT NULL,
     description TEXT,
+    completed BOOLEAN NOT NULL DEFAULT 0,
     deadline_unixtimestamp INTEGER NOT NULL
 );
 
@@ -22,15 +23,12 @@ CREATE TABLE task_targets (
 );
 
 CREATE TABLE reminders (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    target TEXT NOT NULL,
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     task INTEGER NOT NULL,
     when_unixtimestamp INTEGER NOT NULL,
-    FOREIGN KEY (target) REFERENCES users(discord_id) ON DELETE CASCADE,
     FOREIGN KEY (task) REFERENCES tasks(id) ON DELETE CASCADE
 );
 
-CREATE INDEX idx_reminders_target ON reminders(target);
 CREATE INDEX idx_reminders_task ON reminders(task);
 CREATE INDEX idx_task_targets_user_id ON task_targets(user_id);
 
