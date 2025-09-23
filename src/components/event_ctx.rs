@@ -1,7 +1,8 @@
 use crate::{
     aliases::Result,
     calendar::CalendarHub,
-    components::{interactive_message::InteractiveMessage, Db},
+    components::interactive_message::InteractiveMessage,
+    database::Db,
     traits::{interactable::Interactable, InteractiveMessageTrait},
 };
 use serenity::all::{CacheHttp, ComponentInteraction, Context};

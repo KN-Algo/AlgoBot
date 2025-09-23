@@ -1,6 +1,6 @@
 use serenity::all::{CacheHttp, CommandInteraction, Context};
 
-use crate::{calendar::CalendarHub, components::Db, traits::interactable::Interactable};
+use crate::{calendar::CalendarHub, database::Db, traits::interactable::Interactable};
 
 pub struct CommandCtx<'ctx> {
     pub discord_ctx: &'ctx Context,

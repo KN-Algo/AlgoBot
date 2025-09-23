@@ -2,7 +2,7 @@ use serenity::{all::GatewayIntents, Client};
 
 use crate::{
     commands::{events::command::EventsCommand, EmbedTest, InterTest, ModalTest, Ping},
-    components::Db,
+    database::Db,
     handler::Handler,
 };
 
@@ -10,6 +10,7 @@ pub mod aliases;
 pub mod calendar;
 pub mod commands;
 pub mod components;
+pub mod database;
 pub mod handler;
 pub mod log;
 pub mod traits;

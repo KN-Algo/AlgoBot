@@ -4,9 +4,7 @@ use serenity::{
 };
 
 use crate::{
-    calendar::CalendarHub,
-    components::{CommandCtx, Db},
-    log, log_error, log_warn,
+    calendar::CalendarHub, components::CommandCtx, database::Db, log, log_error, log_warn,
 };
 
 use crate::traits::bot_command::BotCommand;
