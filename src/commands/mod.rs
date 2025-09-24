@@ -1,3 +1,4 @@
+pub mod add_task;
 pub mod embed_test;
 pub mod interactive_test;
 pub mod modal_test;
