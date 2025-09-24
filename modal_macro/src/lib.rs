@@ -1,6 +1,6 @@
 extern crate proc_macro;
 
-use crate::tags::*;
+use crate::{command::command::CommandTag, tags::*};
 use crate::row::RowComponent;
 
 use proc_macro2::{Span, TokenStream};
@@ -10,6 +10,13 @@ use syn::{ parse_macro_input, Ident};
 mod misc;
 mod tags;
 
+
+#[proc_macro]
+pub fn command(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    let command_tag = parse_macro_input!(input as CommandTag);
+    let code = quote! { #command_tag };
+    code.into()
+}
 
 
 #[proc_macro]

@@ -9,6 +9,8 @@ pub mod row;
 pub mod selection;
 pub mod tag;
 
+pub mod command;
+
 pub use button::ButtonTag;
 pub use embed::EmbedTag;
 pub use input::InputTag;
