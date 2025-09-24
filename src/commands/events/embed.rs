@@ -47,7 +47,7 @@ impl Embed {
 impl IntoEmbedInteractive for Embed {
     async fn from_command(
         ctx: &CommandCtx,
-        state: Option<&mut crate::components::State>,
+        state: Option<&crate::components::State>,
     ) -> CreateEmbed {
         let state = state.unwrap().clone::<State>().await;
         Self::create(&ctx.calendars, &state.unwrap()).await

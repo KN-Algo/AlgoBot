@@ -43,9 +43,9 @@ impl InteractiveMessage {
 
     async fn _new<T: InteractiveMessageTrait + 'static>(
         ctx: &CommandCtx<'_>,
-        mut state: Option<State>,
+        state: Option<State>,
     ) -> TypedResult<Self> {
-        let msg = T::into_msg().embeds(T::with_embeds_command(ctx, state.as_mut()).await);
+        let msg = T::into_msg().embeds(T::with_embeds_command(ctx, state.as_ref()).await);
 
         let builder = CreateInteractionResponse::Message(msg);
         ctx.interaction.create_response(ctx, builder).await?;

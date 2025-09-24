@@ -61,7 +61,7 @@ impl IntoEmbedInteractive for EmbedTest {
         Self::create(ctx.calendars).await
     }
 
-    async fn from_command(ctx: &CommandCtx, _state: Option<&mut State>) -> CreateEmbed {
+    async fn from_command(ctx: &CommandCtx, _state: Option<&State>) -> CreateEmbed {
         Self::create(ctx.calendars).await
     }
 }
