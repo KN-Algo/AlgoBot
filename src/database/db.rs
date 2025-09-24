@@ -173,13 +173,16 @@ impl Db {
         title: &str,
         description: &str,
         deadline: DateTime<Utc>,
+        given_by: UserId,
     ) -> Result {
         let timestamp = deadline.timestamp();
+        let id: i64 = given_by.into();
         sqlx::query!(
-            r#"INSERT INTO tasks (title, description, deadline_unixtimestamp) VALUES (?, ?, ?)"#,
+            r#"INSERT INTO tasks (title, description, deadline_unixtimestamp, given_by) VALUES (?, ?, ?, ?)"#,
             title,
             description,
-            timestamp
+            timestamp,
+            id
         )
         .execute(&self.pool)
         .await?;

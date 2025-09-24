@@ -36,10 +36,15 @@ impl BotCommand for AddTaskCommand {
         let datetime = Utc.from_utc_datetime(&naive_date);
 
         ctx.db
-            .add_task(&result.title, &result.description, datetime)
+            .add_task(
+                &result.title,
+                &result.description,
+                datetime,
+                result.interaction.user.id,
+            )
             .await?;
 
-        ctx.respond("Task Added!", true).await
+        result.respond("Task Added!", true).await
     }
 
     fn register(&self, create: CreateCommand) -> CreateCommand {
