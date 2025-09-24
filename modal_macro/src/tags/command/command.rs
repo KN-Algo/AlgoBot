@@ -1,11 +1,7 @@
 use quote::{quote, ToTokens};
 use syn::{parse::Parse, spanned::Spanned, Ident, LitStr, Token};
 
-use crate::{
-    command::{description::DescriptionTag, option::OptionTag},
-    misc::ClosingTag,
-    Tag,
-};
+use crate::tags::*;
 
 macro_rules! optional_attr {
     ($self:ident, $attr_name:ident, $($tokens:tt)*) => {
@@ -19,7 +15,7 @@ macro_rules! optional_attr {
 pub struct CommandTag {
     pub struct_name: Ident,
     pub description: Option<LitStr>,
-    pub options: Vec<OptionTag>,
+    pub options: Vec<CommandOptionTag>,
 }
 
 impl Parse for CommandTag {
@@ -28,7 +24,7 @@ impl Parse for CommandTag {
         let tag = input.parse::<Tag>()?;
 
         let mut desc: Option<LitStr> = None;
-        let mut options: Vec<OptionTag> = vec![];
+        let mut options: Vec<CommandOptionTag> = vec![];
 
         while input.peek(Token![<]) && !input.peek2(Token![/]) {
             input.parse::<Token![<]>()?;
@@ -39,7 +35,7 @@ impl Parse for CommandTag {
                 "description" => {
                     desc = Some(input.parse::<DescriptionTag>()?.desc);
                 }
-                "option" => options.push(input.parse::<OptionTag>()?),
+                "option" => options.push(input.parse::<CommandOptionTag>()?),
 
                 _ => return Err(syn::Error::new(next_tag.name.span(), "unknown tag")),
             }

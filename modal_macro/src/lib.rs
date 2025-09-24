@@ -1,7 +1,7 @@
 extern crate proc_macro;
 
-use crate::{command::command::CommandTag, tags::*};
-use crate::row::RowComponent;
+use crate::tags::*;
+use crate::misc::RowComponent;
 
 use proc_macro2::{Span, TokenStream};
 use quote::{quote };

@@ -1,6 +1,6 @@
 use syn::{parse::Parse, LitStr};
 
-use crate::{misc::ClosingTag, Tag};
+use crate::tags::{ClosingTag, Tag};
 
 pub struct NameTag {
     pub name: LitStr,

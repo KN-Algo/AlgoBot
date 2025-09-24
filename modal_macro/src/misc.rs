@@ -1,3 +1,4 @@
+use crate::tags::*;
 use proc_macro2::{Span, TokenStream};
 use quote::quote;
 use quote::ToTokens;
@@ -29,21 +30,6 @@ impl ToTokens for AttrValue {
     }
 }
 
-pub struct ClosingTag {
-    pub name: Ident,
-}
-
-impl Parse for ClosingTag {
-    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-        input.parse::<Token![<]>()?;
-        input.parse::<Token![/]>()?;
-        let name = input.parse::<Ident>()?;
-        input.parse::<Token![>]>()?;
-
-        Ok(Self { name })
-    }
-}
-
 pub struct Attribute {
     pub name: Ident,
     pub value: AttrValue,
@@ -62,4 +48,10 @@ impl Parse for Attribute {
 
         return Ok(Self { name, value });
     }
+}
+
+pub enum RowComponent {
+    Buttons(Vec<ButtonTag>),
+    SelectMenu(SelectionTag),
+    Input(InputTag),
 }

@@ -1,21 +1,15 @@
-use crate::misc::ClosingTag;
+use crate::misc::RowComponent;
 use crate::tags::*;
 
 use proc_macro2::TokenStream;
 use quote::{quote, ToTokens};
 use syn::{parse::Parse, Token};
 
-pub enum RowComponent {
-    Buttons(Vec<ButtonTag>),
-    SelectMenu(SelectionTag),
-    Input(InputTag),
-}
-
-pub struct RowTag {
+pub struct ModalRowTag {
     pub component: RowComponent,
 }
 
-impl Parse for RowTag {
+impl Parse for ModalRowTag {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
         let tag = input.parse::<Tag>()?;
         if tag.name.to_owned() != "row" {
@@ -29,37 +23,25 @@ impl Parse for RowTag {
         let next_tag = fork.parse::<Tag>()?;
 
         match next_tag.name.to_string().as_str() {
-            "button" => {
-                let b = input.parse::<ButtonTag>()?;
-                let mut buttons = vec![b];
-                while input.peek(Token![<]) && !input.peek2(Token![/]) {
-                    input.parse::<Token![<]>()?;
-                    buttons.push(input.parse::<ButtonTag>()?);
-                }
+            "input" => {
+                let inputtag = input.parse::<InputTag>()?;
                 input.parse::<ClosingTag>()?;
                 return Ok(Self {
-                    component: RowComponent::Buttons(buttons),
-                });
-            }
-            "selection" => {
-                let selecttag = input.parse::<SelectionTag>()?;
-                input.parse::<ClosingTag>()?;
-                return Ok(Self {
-                    component: RowComponent::SelectMenu(selecttag),
+                    component: RowComponent::Input(inputtag),
                 });
             }
 
             _ => {
                 return Err(syn::Error::new(
                     next_tag.name.span(),
-                    "rows accept only <button> and <selection> tags",
+                    "modals accept only <input> tags",
                 ))
             }
         }
     }
 }
 
-impl ToTokens for RowTag {
+impl ToTokens for ModalRowTag {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         use RowComponent::*;
         let t = match &self.component {

@@ -1,23 +1,13 @@
-pub mod button;
-pub mod embed;
-pub mod input;
+pub mod closing;
 pub mod interactive;
 pub mod modal;
-pub mod modal_row;
-pub mod option;
-pub mod row;
-pub mod selection;
 pub mod tag;
 
 pub mod command;
 
-pub use button::ButtonTag;
-pub use embed::EmbedTag;
-pub use input::InputTag;
-pub use interactive::InteractiveTag;
-pub use modal::ModalTag;
-pub use modal_row::ModalRowTag;
-pub use option::OptionTag;
-pub use row::RowTag;
-pub use selection::SelectionTag;
+pub use closing::ClosingTag;
 pub use tag::Tag;
+
+pub use command::*;
+pub use interactive::*;
+pub use modal::*;

@@ -1,5 +1,5 @@
-use crate::misc::{AttrValue, ClosingTag};
-use crate::tags::row::RowComponent;
+use crate::misc::AttrValue;
+use crate::misc::RowComponent;
 use crate::tags::*;
 
 use proc_macro2::Span;

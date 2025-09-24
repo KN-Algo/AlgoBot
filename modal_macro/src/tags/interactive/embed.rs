@@ -1,6 +1,6 @@
 use syn::{parse::Parse, Ident};
 
-use crate::{misc::ClosingTag, Tag};
+use crate::tags::{ClosingTag, Tag};
 
 #[derive(Clone)]
 pub struct EmbedTag {

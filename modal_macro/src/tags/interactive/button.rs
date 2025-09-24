@@ -1,4 +1,4 @@
-use crate::misc::{AttrValue, ClosingTag};
+use crate::misc::AttrValue;
 use crate::tags::*;
 
 use proc_macro2::{Span, TokenStream};

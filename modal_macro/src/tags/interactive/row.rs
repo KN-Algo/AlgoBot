@@ -1,16 +1,15 @@
-use crate::misc::ClosingTag;
-use crate::tags::row::RowComponent;
 use crate::tags::*;
 
+use crate::misc::RowComponent;
 use proc_macro2::TokenStream;
 use quote::{quote, ToTokens};
 use syn::{parse::Parse, Token};
 
-pub struct ModalRowTag {
+pub struct RowTag {
     pub component: RowComponent,
 }
 
-impl Parse for ModalRowTag {
+impl Parse for RowTag {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
         let tag = input.parse::<Tag>()?;
         if tag.name.to_owned() != "row" {
@@ -24,25 +23,37 @@ impl Parse for ModalRowTag {
         let next_tag = fork.parse::<Tag>()?;
 
         match next_tag.name.to_string().as_str() {
-            "input" => {
-                let inputtag = input.parse::<InputTag>()?;
+            "button" => {
+                let b = input.parse::<ButtonTag>()?;
+                let mut buttons = vec![b];
+                while input.peek(Token![<]) && !input.peek2(Token![/]) {
+                    input.parse::<Token![<]>()?;
+                    buttons.push(input.parse::<ButtonTag>()?);
+                }
                 input.parse::<ClosingTag>()?;
                 return Ok(Self {
-                    component: RowComponent::Input(inputtag),
+                    component: RowComponent::Buttons(buttons),
+                });
+            }
+            "selection" => {
+                let selecttag = input.parse::<SelectionTag>()?;
+                input.parse::<ClosingTag>()?;
+                return Ok(Self {
+                    component: RowComponent::SelectMenu(selecttag),
                 });
             }
 
             _ => {
                 return Err(syn::Error::new(
                     next_tag.name.span(),
-                    "modals accept only <input> tags",
+                    "rows accept only <button> and <selection> tags",
                 ))
             }
         }
     }
 }
 
-impl ToTokens for ModalRowTag {
+impl ToTokens for RowTag {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         use RowComponent::*;
         let t = match &self.component {

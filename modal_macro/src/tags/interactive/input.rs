@@ -1,5 +1,5 @@
-use crate::misc::{AttrValue, ClosingTag};
-use crate::tags::Tag;
+use crate::misc::AttrValue;
+use crate::tags::*;
 
 use proc_macro2::{Span, TokenStream};
 use quote::{quote, ToTokens};

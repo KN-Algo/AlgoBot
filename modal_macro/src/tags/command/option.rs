@@ -1,11 +1,8 @@
 use quote::{quote, ToTokens};
 use syn::{parse::Parse, Ident, LitBool, LitInt, LitStr, Token};
 
-use crate::{
-    command::{description::DescriptionTag, name::NameTag, r#type::TypeTag},
-    misc::{AttrValue, ClosingTag},
-    Tag,
-};
+use crate::misc::AttrValue;
+use crate::tags::*;
 
 macro_rules! optional_attr {
     ($self:ident, $attr_name:ident, $($tokens:tt)*) => {
@@ -16,7 +13,7 @@ macro_rules! optional_attr {
     };
 }
 
-pub struct OptionTag {
+pub struct CommandOptionTag {
     pub name: LitStr,
     desc: LitStr,
     pub ttype: Ident,
@@ -25,7 +22,7 @@ pub struct OptionTag {
     max_len: Option<LitInt>,
 }
 
-impl Parse for OptionTag {
+impl Parse for CommandOptionTag {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
         let mut tag = input.parse::<Tag>()?;
         let required = match tag.attr("required") {
@@ -117,7 +114,7 @@ impl Parse for OptionTag {
     }
 }
 
-impl ToTokens for OptionTag {
+impl ToTokens for CommandOptionTag {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let name = &self.name;
         let desc = &self.desc;
