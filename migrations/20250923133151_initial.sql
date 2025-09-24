@@ -9,7 +9,7 @@ CREATE TABLE users (
 CREATE TABLE tasks (
     id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     title TEXT NOT NULL,
-    description TEXT,
+    description TEXT NOT NULL,
     completed BOOLEAN NOT NULL DEFAULT 0,
     deadline_unixtimestamp INTEGER NOT NULL,
     given_by INTEGER NOT NULL

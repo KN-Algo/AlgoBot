@@ -40,13 +40,13 @@ pub fn interactive_msg(input: proc_macro::TokenStream) -> proc_macro::TokenStrea
             RowComponent::Input(i) => { 
                 let id = i.id.value();
                 let ident = Ident::new(&format!("handle_{}", id), Span::call_site());
-                quote! { async fn #ident(ctx: &mut crate::components::EventCtx) -> ::std::result::Result<(), ::serenity::Error> { crate::log_warn!("Unhandled Interaction: {}", #id); Ok(()) } }
+                quote! { async fn #ident(ctx: &mut crate::components::EventCtx) -> crate::aliases::Result { crate::log_warn!("Unhandled Interaction: {}", #id); Ok(()) } }
             }
             RowComponent::SelectMenu(s) => {
                 let options = s.options.iter().map(|option| {
                     let id = option.id.value();
                     let ident = Ident::new(&format!("handle_{}", id), Span::call_site());
-                    quote! { async fn #ident(ctx: &mut crate::components::EventCtx) -> ::std::result::Result<(), ::serenity::Error> { crate::log_warn!("Unhandled Interaction: {}", #id); Ok(()) } }
+                    quote! { async fn #ident(ctx: &mut crate::components::EventCtx) -> crate::aliases::Result { crate::log_warn!("Unhandled Interaction: {}", #id); Ok(()) } }
                 });
 
                 quote! { #(#options)* }
@@ -55,7 +55,7 @@ pub fn interactive_msg(input: proc_macro::TokenStream) -> proc_macro::TokenStrea
                 let buttons = b.iter().map(|button| {
                     let id = button.id.value();
                     let ident = Ident::new(&format!("handle_{}", id), Span::call_site());
-                    quote! { async fn #ident(ctx: &mut crate::components::EventCtx) -> ::std::result::Result<(), ::serenity::Error> { crate::log_warn!("Unhandled Interaction: {}", #id); Ok(()) } }
+                    quote! { async fn #ident(ctx: &mut crate::components::EventCtx) -> crate::aliases::Result { crate::log_warn!("Unhandled Interaction: {}", #id); Ok(()) } }
                 });
 
                 quote! { #(#buttons)* }
@@ -130,7 +130,7 @@ pub fn interactive_msg(input: proc_macro::TokenStream) -> proc_macro::TokenStrea
                 ::std::vec![#(#embeds_event::from_event(ctx).await)*]
             }
 
-            async fn handle_event(ctx: &mut crate::components::EventCtx) -> ::std::result::Result<(), ::serenity::Error> {
+            async fn handle_event(ctx: &mut crate::components::EventCtx) -> crate::aliases::Result {
                 //crate::log!("Running {}", stringify!(#name));
                 match ctx.interaction.data.custom_id.as_str() {
                     #(#handle_func)*
@@ -162,7 +162,7 @@ pub fn modal(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
         .iter()
         .map(|field| {
             let field_name = &field.field_name;
-            quote! { #field_name: Option<String>, }
+            quote! { #field_name: String, }
         })
         .collect::<TokenStream>();
 
@@ -192,7 +192,7 @@ pub fn modal(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
         .iter()
         .map(|field| {
             let field_name = &field.field_name;
-            quote! { #field_name, }
+            quote! { #field_name: #field_name.unwrap(), }
         })
         .collect::<TokenStream>();
 
@@ -205,7 +205,7 @@ pub fn modal(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 
         #[::serenity::async_trait]
         impl<'ctx> crate::traits::modal::ModalTrait<'ctx> for #struct_name<'ctx> {
-            async fn execute(ctx: &::serenity::all::Context, id_token: (::serenity::all::InteractionId, &::std::primitive::str)) -> ::std::result::Result<Self, ::serenity::Error> where 'life0: 'ctx {
+            async fn execute(ctx: &::serenity::all::Context, id_token: (::serenity::all::InteractionId, &::std::primitive::str)) -> crate::aliases::TypedResult<Self> where 'life0: 'ctx {
                 use ::serenity::builder::Builder;
                 let custom_id = id_token.0.to_string();
                 let modal = ::serenity::builder::CreateModal::new(&custom_id, #title).components(
@@ -222,7 +222,7 @@ pub fn modal(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
                     .timeout(std::time::Duration::from_secs(#duration));
 
                 let modal_interaction = collector.next().await;
-                let Some(modal_interaction) = modal_interaction else { return Err(::serenity::Error::Other("Didn't receive a modal interaction back!")) };
+                let Some(modal_interaction) = modal_interaction else { return Err(::serenity::Error::Other("Didn't receive a modal interaction back!").into()) };
 
                 let inputs = modal_interaction.data.components.iter();
                 #let_components

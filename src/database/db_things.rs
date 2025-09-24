@@ -24,7 +24,7 @@ pub struct EventReminder {
 pub struct Task {
     pub id: i64,
     pub title: String,
-    pub description: Option<String>,
+    pub description: String,
     pub completed: bool,
     pub deadline: chrono::DateTime<Utc>,
     pub given_by: i64,

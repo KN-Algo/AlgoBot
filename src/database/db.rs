@@ -5,6 +5,7 @@ use serenity::all::UserId;
 use sqlx::{Pool, Sqlite};
 
 use crate::{
+    aliases::{Result, TypedResult},
     database::{EventReminder, Reminder, ReminderWay, Task},
     log, log_error,
 };
@@ -14,7 +15,7 @@ pub struct Db {
 }
 
 impl Db {
-    pub async fn new(filename: &str, max_connections: u32) -> Result<Self, sqlx::Error> {
+    pub async fn new(filename: &str, max_connections: u32) -> TypedResult<Self> {
         let db = match sqlx::sqlite::SqlitePoolOptions::new()
             .max_connections(max_connections)
             .connect_with(
@@ -30,7 +31,7 @@ impl Db {
             }
             Err(e) => {
                 log_error!("Couldn't connect to the database!: {e}");
-                return Err(e);
+                return Err(e.into());
             }
         };
 
@@ -46,22 +47,22 @@ impl Db {
             Ok(_) => (),
             Err(e) => {
                 log!("Failed to turn on foreign_keys support!");
-                return Err(e);
+                return Err(e.into());
             }
         }
 
         Ok(Self { pool: db })
     }
 
-    async fn insert_user(&self, discord_id: UserId) -> Result<(), sqlx::Error> {
+    async fn insert_user(&self, discord_id: UserId) -> Result {
         let id: i64 = discord_id.into();
         sqlx::query!("INSERT OR IGNORE INTO users (discord_id) VALUES (?)", id)
             .execute(&self.pool)
-            .await
-            .map(|_| ())
+            .await?;
+        Ok(())
     }
 
-    async fn get_user_tasks(&self, discord_id: UserId) -> Result<Vec<Task>, sqlx::Error> {
+    pub async fn get_user_tasks(&self, discord_id: UserId) -> TypedResult<Vec<Task>> {
         let id: i64 = discord_id.into();
         self.insert_user(discord_id).await?;
         let rows = sqlx::query!(
@@ -107,7 +108,7 @@ impl Db {
         Ok(group_map.into_values().collect())
     }
 
-    async fn add_reminder(&self, task_id: i64, when: chrono::Duration) -> Result<(), sqlx::Error> {
+    pub async fn add_reminder(&self, task_id: i64, when: chrono::Duration) -> Result {
         let secs = when.num_seconds();
         sqlx::query!(
             r#"INSERT INTO reminders (task, when_unixtimestamp) VALUES (?, ?)"#,
@@ -115,15 +116,15 @@ impl Db {
             secs
         )
         .execute(&self.pool)
-        .await
-        .map(|_| ())
+        .await?;
+        Ok(())
     }
 
-    async fn get_given_tasks(&self, discord_id: UserId) -> Result<Vec<Task>, sqlx::Error> {
+    pub async fn get_given_tasks(&self, discord_id: UserId) -> TypedResult<Vec<Task>> {
         self.insert_user(discord_id).await?;
 
         let id: i64 = discord_id.into();
-        sqlx::query!(
+        Ok(sqlx::query!(
             r#"
         SELECT * from tasks WHERE given_by = ?
         "#,
@@ -143,10 +144,10 @@ impl Db {
                     reminders: vec![],
                 })
                 .collect()
-        })
+        })?)
     }
 
-    async fn add_users_to_task(&self, task_id: i64, users: Vec<UserId>) -> Result<(), sqlx::Error> {
+    pub async fn add_users_to_task(&self, task_id: i64, users: Vec<UserId>) -> Result {
         let mut transaction = self.pool.begin().await?;
         for target in users {
             let id: i64 = target.into();
@@ -163,15 +164,16 @@ impl Db {
             .await?;
         }
 
-        transaction.commit().await
+        transaction.commit().await?;
+        Ok(())
     }
 
-    async fn add_task(
+    pub async fn add_task(
         &self,
         title: &str,
-        description: Option<&str>,
+        description: &str,
         deadline: DateTime<Utc>,
-    ) -> Result<(), sqlx::Error> {
+    ) -> Result {
         let timestamp = deadline.timestamp();
         sqlx::query!(
             r#"INSERT INTO tasks (title, description, deadline_unixtimestamp) VALUES (?, ?, ?)"#,
@@ -180,11 +182,11 @@ impl Db {
             timestamp
         )
         .execute(&self.pool)
-        .await
-        .map(|_| ())
+        .await?;
+        Ok(())
     }
 
-    pub async fn toggle_task_completion(&self, task_id: i64) -> Result<(), sqlx::Error> {
+    pub async fn toggle_task_completion(&self, task_id: i64) -> Result {
         sqlx::query!(
             r#"
             UPDATE tasks
@@ -194,11 +196,11 @@ impl Db {
             task_id
         )
         .execute(&self.pool)
-        .await
-        .map(|_| ())
+        .await?;
+        Ok(())
     }
 
-    pub async fn delete_completed_expired_tasks(&self) -> Result<(), sqlx::Error> {
+    pub async fn delete_completed_expired_tasks(&self) -> Result {
         let now = Utc::now().timestamp();
         sqlx::query!(
             r#"
@@ -209,8 +211,8 @@ impl Db {
             now
         )
         .execute(&self.pool)
-        .await
-        .map(|_| ())
+        .await?;
+        Ok(())
     }
 
     pub async fn add_event_reminder(
@@ -218,7 +220,7 @@ impl Db {
         discord_id: UserId,
         way: ReminderWay,
         email: Option<String>,
-    ) -> Result<(), sqlx::Error> {
+    ) -> Result {
         let id: i64 = discord_id.into();
         self.insert_user(discord_id).await?;
         sqlx::query!(
@@ -231,11 +233,11 @@ impl Db {
             email
         )
         .execute(&self.pool)
-        .await
-        .map(|_| ())
+        .await?;
+        Ok(())
     }
 
-    pub async fn delete_event_reminder(&self, discord_id: UserId) -> Result<(), sqlx::Error> {
+    pub async fn delete_event_reminder(&self, discord_id: UserId) -> Result {
         let id: i64 = discord_id.into();
         sqlx::query!(
             r#"
@@ -244,16 +246,16 @@ impl Db {
             id,
         )
         .execute(&self.pool)
-        .await
-        .map(|_| ())
+        .await?;
+        Ok(())
     }
 
-    pub async fn fetch_event_reminders(&self) -> Result<Vec<EventReminder>, sqlx::Error> {
-        sqlx::query_as!(
+    pub async fn fetch_event_reminders(&self) -> TypedResult<Vec<EventReminder>> {
+        Ok(sqlx::query_as!(
             EventReminder,
             r#"SELECT id, user_id, way as "way: ReminderWay", email FROM event_reminders"#
         )
         .fetch_all(&self.pool)
-        .await
+        .await?)
     }
 }

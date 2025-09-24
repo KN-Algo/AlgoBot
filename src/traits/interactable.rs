@@ -10,17 +10,30 @@ pub trait Interactable<'ctx> {
     fn id_token(&self) -> (InteractionId, &str);
 
     fn acknowlage(&self) -> impl Future<Output = Result> {
-        CreateInteractionResponse::Acknowledge.execute(self.discord_ctx(), self.id_token())
+        async {
+            CreateInteractionResponse::Acknowledge
+                .execute(self.discord_ctx(), self.id_token())
+                .await?;
+            Ok(())
+        }
     }
 
     fn respond(&self, msg: impl IntoResponse) -> impl Future<Output = Result> {
-        CreateInteractionResponse::Message(msg.into_msg())
-            .execute(self.discord_ctx(), self.id_token())
+        async move {
+            CreateInteractionResponse::Message(msg.into_msg())
+                .execute(self.discord_ctx(), self.id_token())
+                .await?;
+            Ok(())
+        }
     }
 
     fn edit(&self, msg: impl IntoResponse) -> impl Future<Output = Result> {
-        CreateInteractionResponse::UpdateMessage(msg.into_msg())
-            .execute(self.discord_ctx(), self.id_token())
+        async move {
+            CreateInteractionResponse::UpdateMessage(msg.into_msg())
+                .execute(self.discord_ctx(), self.id_token())
+                .await?;
+            Ok(())
+        }
     }
 
     fn modal<Modal: ModalTrait<'ctx> + 'ctx>(

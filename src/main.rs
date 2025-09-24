@@ -1,7 +1,10 @@
 use serenity::{all::GatewayIntents, Client};
 
 use crate::{
-    commands::{events::command::EventsCommand, EmbedTest, InterTest, ModalTest, Ping},
+    commands::{
+        add_task::AddTaskCommand, events::command::EventsCommand, EmbedTest, InterTest, ModalTest,
+        Ping,
+    },
     database::Db,
     handler::Handler,
 };
@@ -11,6 +14,7 @@ pub mod calendar;
 pub mod commands;
 pub mod components;
 pub mod database;
+pub mod error;
 pub mod handler;
 pub mod log;
 pub mod traits;
@@ -50,7 +54,8 @@ async fn main() {
         .register_command("modal_test", ModalTest)
         .register_command("inter_test", InterTest)
         .register_command("embed_test", EmbedTest)
-        .register_command("events", EventsCommand);
+        .register_command("events", EventsCommand)
+        .register_command("add_task", AddTaskCommand);
 
     let mut client = match Client::builder(token, intents).event_handler(handler).await {
         Ok(c) => {
