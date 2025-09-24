@@ -8,7 +8,7 @@ pub struct Ping;
 #[async_trait]
 impl BotCommand for Ping {
     async fn run(&self, ctx: &CommandCtx) -> Result {
-        ctx.respond("pong!").await
+        ctx.respond("pong!", false).await
     }
 
     fn register(&self, create: CreateCommand) -> CreateCommand {

@@ -5,7 +5,7 @@ use serenity::{all::CreateCommand, async_trait};
 use crate::{
     aliases::Result,
     components::CommandCtx,
-    traits::{BotCommand, Interactable, IntoResponse},
+    traits::{BotCommand, Interactable},
 };
 
 modal! {
@@ -30,7 +30,7 @@ impl BotCommand for AddTaskCommand {
         let result = ctx.modal::<AddTaskModal>().await?;
         let naive = match NaiveDate::parse_from_str(&result.deadline, "%d-%m-%y") {
             Ok(d) => d,
-            Err(_) => return ctx.respond("invalid deadline date").await,
+            Err(_) => return ctx.respond("invalid deadline date", true).await,
         };
         let naive_date = naive.and_hms_opt(0, 0, 0).unwrap();
         let datetime = Utc.from_utc_datetime(&naive_date);
@@ -39,7 +39,7 @@ impl BotCommand for AddTaskCommand {
             .add_task(&result.title, &result.description, datetime)
             .await?;
 
-        Ok(())
+        ctx.respond("Task Added!", true).await
     }
 
     fn register(&self, create: CreateCommand) -> CreateCommand {

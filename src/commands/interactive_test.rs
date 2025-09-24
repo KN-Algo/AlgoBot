@@ -102,13 +102,13 @@ impl SusMsgHandlerTrait for SusMsgHandler {
     }
 
     async fn handle_sus_button2(ctx: &mut EventCtx) -> Result {
-        ctx.respond("I am the sus").await
+        ctx.respond("I am the sus", true).await
     }
 
     async fn handle_sus_button3(ctx: &mut EventCtx) -> Result {
         get_state!(ctx, InteractiveState, state);
         state.counter += 1;
-        let r = ctx.respond(format!("{}", state.counter)).await;
+        let r = ctx.respond(format!("{}", state.counter), false).await;
         write_state!(ctx, InteractiveState, state);
         r
     }

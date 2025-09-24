@@ -33,7 +33,7 @@ pub struct EmbedTest;
 #[async_trait]
 impl BotCommand for EmbedTest {
     async fn run(&self, ctx: &CommandCtx) -> Result {
-        ctx.respond(Embed).await
+        ctx.respond(Embed, false).await
     }
 
     fn register(&self, create: CreateCommand) -> CreateCommand {

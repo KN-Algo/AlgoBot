@@ -30,7 +30,7 @@ impl BotCommand for ModalTest {
     async fn run(&self, ctx: &CommandCtx) -> Result {
         let modal = ctx.modal::<CoolModal>().await?;
         log!("Modal results {:?} {:?}", modal.name, modal.email);
-        modal.respond("Done!").await
+        modal.respond("Done!", false).await
     }
 
     fn register(&self, create: CreateCommand) -> CreateCommand {

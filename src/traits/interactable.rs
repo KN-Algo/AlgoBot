@@ -18,9 +18,9 @@ pub trait Interactable<'ctx> {
         }
     }
 
-    fn respond(&self, msg: impl IntoResponse) -> impl Future<Output = Result> {
+    fn respond(&self, msg: impl IntoResponse, ephemeral: bool) -> impl Future<Output = Result> {
         async move {
-            CreateInteractionResponse::Message(msg.into_msg())
+            CreateInteractionResponse::Message(msg.into_msg().ephemeral(ephemeral))
                 .execute(self.discord_ctx(), self.id_token())
                 .await?;
             Ok(())
