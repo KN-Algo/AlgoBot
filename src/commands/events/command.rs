@@ -3,12 +3,10 @@ use serenity::{all::CreateCommand, async_trait};
 use crate::{
     aliases::Result,
     components::{CommandCtx, InteractiveMessage},
-    traits::BotCommand,
-    write_state,
+    traits::{BotCommand, StateTrait},
 };
 
 use crate::commands::events::embed::Embed;
-use crate::get_state;
 use crate::traits::into_embed::IntoEmbedInteractive;
 use crate::{components::EventCtx, traits::Interactable};
 use modal_macro::interactive_msg;
@@ -19,9 +17,14 @@ pub struct State {
     pub max: usize,
 }
 
-impl Default for State {
-    fn default() -> Self {
-        State { page: 0, max: 99 }
+#[async_trait]
+impl StateTrait for State {
+    async fn init(ctx: &CommandCtx) -> Self {
+        let calendar = ctx.calendars.get_calendar("KN ALGO").await.unwrap();
+        Self {
+            page: 0,
+            max: calendar.events.len(),
+        }
     }
 }
 
@@ -38,23 +41,23 @@ interactive_msg! {
 #[async_trait]
 impl HandlerTrait for Handler {
     async fn handle_prev(ctx: &mut EventCtx) -> Result {
-        get_state!(ctx, State, state);
+        let mut state = ctx.msg.clone_state::<State>().await.unwrap();
         if state.page == 0 {
             return ctx.acknowlage().await;
         }
 
         state.page -= 1;
-        write_state!(ctx, State, state);
+        ctx.msg.write_state::<State>(state).await;
         ctx.update_msg::<AllEvents<Handler>>().await
     }
     async fn handle_next(ctx: &mut EventCtx) -> Result {
-        get_state!(ctx, State, state);
+        let mut state = ctx.msg.clone_state::<State>().await.unwrap();
         if state.page == state.max {
             return ctx.acknowlage().await;
         }
 
         state.page += 1;
-        write_state!(ctx, State, state);
+        ctx.msg.write_state::<State>(state).await;
         ctx.update_msg::<AllEvents<Handler>>().await
     }
 }

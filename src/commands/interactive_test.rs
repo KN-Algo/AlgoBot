@@ -1,11 +1,10 @@
 use crate::aliases::Result;
 use crate::calendar::CalendarHub;
-use crate::components::EventCtx;
 use crate::components::{CommandCtx, InteractiveMessage};
+use crate::components::{EventCtx, State};
 use crate::traits::into_embed::IntoEmbedInteractive;
-use crate::traits::Interactable;
 use crate::traits::{BotCommand, IntoEmbed};
-use crate::{get_state, write_state};
+use crate::traits::{Interactable, StateTrait};
 use modal_macro::interactive_msg;
 use modal_macro::modal;
 use serenity::all::{CreateEmbed, CreateEmbedFooter, Timestamp};
@@ -16,6 +15,13 @@ pub struct InterTest;
 #[derive(Default, Clone)]
 struct InteractiveState {
     counter: u16,
+}
+
+#[async_trait]
+impl StateTrait for InteractiveState {
+    async fn init(_ctx: &CommandCtx) -> Self {
+        Self { counter: 1 }
+    }
 }
 
 struct EmbedTest;
@@ -55,7 +61,7 @@ impl IntoEmbedInteractive for EmbedTest {
         Self::create(ctx.calendars).await
     }
 
-    async fn from_command(ctx: &CommandCtx) -> CreateEmbed {
+    async fn from_command(ctx: &CommandCtx, _state: Option<&mut State>) -> CreateEmbed {
         Self::create(ctx.calendars).await
     }
 }
@@ -106,11 +112,11 @@ impl SusMsgHandlerTrait for SusMsgHandler {
     }
 
     async fn handle_sus_button3(ctx: &mut EventCtx) -> Result {
-        get_state!(ctx, InteractiveState, state);
-        state.counter += 1;
-        let r = ctx.respond(format!("{}", state.counter), false).await;
-        write_state!(ctx, InteractiveState, state);
-        r
+        let mut s = ctx.msg.clone_state::<InteractiveState>().await.unwrap();
+        s.counter += 1;
+        let r = s.counter.to_string();
+        ctx.msg.write_state::<InteractiveState>(s).await;
+        ctx.respond(r, false).await
     }
 
     async fn handle_susser(ctx: &mut EventCtx) -> Result {

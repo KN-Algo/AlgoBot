@@ -3,38 +3,16 @@ use serenity::all::{
     CreateInteractionResponseMessage, Message, MessageFlags,
 };
 use serenity::futures::StreamExt;
-use std::any::Any;
-use std::sync::Arc;
 use std::time::Duration;
-use tokio::sync::RwLock;
 
 use crate::aliases::{Result, TypedResult};
-use crate::components::{CommandCtx, EventCtx};
+use crate::components::{CommandCtx, EventCtx, State};
+use crate::traits::state::StateTrait;
 use crate::traits::InteractiveMessageTrait;
-
-#[macro_export]
-macro_rules! get_state {
-    ($ctx:ident, $type:ident, $var:ident) => {
-        let arc = $ctx.msg.state::<$type>().await.unwrap().clone();
-        #[allow(unused_mut)]
-        let mut $var = (arc.read().await).clone();
-        drop(arc);
-    };
-}
-
-#[macro_export]
-macro_rules! write_state {
-    ($ctx:ident, $type:ident, $val:expr) => {
-        let arc = $ctx.msg.state::<$type>().await.unwrap().clone();
-        let mut sus = arc.write().await;
-        *sus = $val;
-        drop(sus);
-    };
-}
 
 pub struct InteractiveMessage {
     msg: Message,
-    state: Option<Arc<dyn Any + Send + Sync>>,
+    state: Option<State>,
 
     //i hate this
     has_handler_mutated: bool,
@@ -50,17 +28,24 @@ pub struct InteractiveMessage {
 impl InteractiveMessage {
     pub async fn new_with_state<
         T: InteractiveMessageTrait + 'static,
-        State: Clone + Default + Send + Sync + 'static,
+        S: StateTrait + Send + Sync + 'static,
     >(
         ctx: &CommandCtx<'_>,
     ) -> TypedResult<Self> {
-        let mut s = Self::new::<T>(ctx).await?;
-        s.state = Some(Arc::new(RwLock::new(State::default())));
-        Ok(s)
+        Self::_new::<T>(ctx, Some(State::init::<S>(ctx).await)).await
     }
 
-    async fn new<T: InteractiveMessageTrait + 'static>(ctx: &CommandCtx<'_>) -> TypedResult<Self> {
-        let msg = T::into_msg().embeds(T::with_embeds_command(ctx).await);
+    pub async fn new<T: InteractiveMessageTrait + 'static>(
+        ctx: &CommandCtx<'_>,
+    ) -> TypedResult<Self> {
+        Self::_new::<T>(ctx, None).await
+    }
+
+    async fn _new<T: InteractiveMessageTrait + 'static>(
+        ctx: &CommandCtx<'_>,
+        mut state: Option<State>,
+    ) -> TypedResult<Self> {
+        let msg = T::into_msg().embeds(T::with_embeds_command(ctx, state.as_mut()).await);
 
         let builder = CreateInteractionResponse::Message(msg);
         ctx.interaction.create_response(ctx, builder).await?;
@@ -68,7 +53,7 @@ impl InteractiveMessage {
 
         Ok(Self {
             msg: m,
-            state: None,
+            state: state,
             has_handler_mutated: false,
             handler: Box::new(|c| Box::pin(T::handle_event(c))),
         })
@@ -141,10 +126,20 @@ impl InteractiveMessage {
             .await
     }
 
-    pub async fn state<State: Default + Send + Sync + 'static>(
-        &mut self,
-    ) -> Option<Arc<RwLock<State>>> {
-        let arc = self.state.clone()?;
-        arc.downcast::<RwLock<State>>().ok()
+    pub async fn clone_state<S: StateTrait + Send + Sync + 'static>(&self) -> Option<S> {
+        match &self.state {
+            None => None,
+            Some(s) => s.clone::<S>().await,
+        }
+    }
+
+    pub async fn write_state<S: StateTrait + Send + Sync + 'static>(
+        &self,
+        new_state: S,
+    ) -> Option<()> {
+        match &self.state {
+            None => None,
+            Some(s) => s.write(new_state).await,
+        }
     }
 }

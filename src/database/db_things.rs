@@ -1,5 +1,6 @@
 use chrono::Utc;
 
+#[derive(Clone)]
 pub struct Reminder {
     pub when: chrono::Duration,
 }
@@ -21,6 +22,7 @@ pub struct EventReminder {
     pub email: Option<String>,
 }
 
+#[derive(Clone)]
 pub struct Task {
     pub id: i64,
     pub title: String,

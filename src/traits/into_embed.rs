@@ -4,7 +4,7 @@ use serenity::{
 };
 
 use crate::{
-    components::{CommandCtx, EventCtx},
+    components::{CommandCtx, EventCtx, State},
     traits::IntoResponse,
 };
 
@@ -20,6 +20,6 @@ impl<T: IntoEmbed> IntoResponse for T {
 
 #[async_trait]
 pub trait IntoEmbedInteractive {
-    async fn from_command(ctx: &CommandCtx) -> CreateEmbed;
+    async fn from_command(ctx: &CommandCtx, state: Option<&mut State>) -> CreateEmbed;
     async fn from_event(ctx: &mut EventCtx) -> CreateEmbed;
 }
