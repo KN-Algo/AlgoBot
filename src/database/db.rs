@@ -72,6 +72,7 @@ impl Db {
             t.description,
             t.completed,
             t.deadline_unixtimestamp,
+            t.given_by,
             r.id AS reminder_id,
             r.task AS reminder_task,
             r.when_unixtimestamp as "when"
@@ -93,6 +94,7 @@ impl Db {
                 title: row.title,
                 completed: row.completed,
                 description: row.description,
+                given_by: row.given_by,
                 deadline: Utc.timestamp_opt(row.deadline_unixtimestamp, 0).unwrap(),
                 reminders: Vec::new(),
             });
@@ -117,30 +119,36 @@ impl Db {
         .map(|_| ())
     }
 
-    async fn add_task(
-        &self,
-        title: &str,
-        description: Option<&str>,
-        deadline: DateTime<Utc>,
-        targets: Vec<UserId>,
-    ) -> Result<(), sqlx::Error> {
-        let mut transaction = self.pool.begin().await?;
+    async fn get_given_tasks(&self, discord_id: UserId) -> Result<Vec<Task>, sqlx::Error> {
+        self.insert_user(discord_id).await?;
 
-        let timestamp = deadline.timestamp();
+        let id: i64 = discord_id.into();
         sqlx::query!(
-            r#"INSERT INTO tasks (title, description, deadline_unixtimestamp) VALUES (?, ?, ?)"#,
-            title,
-            description,
-            timestamp
+            r#"
+        SELECT * from tasks WHERE given_by = ?
+        "#,
+            id
         )
-        .execute(&mut *transaction)
-        .await?;
+        .fetch_all(&self.pool)
+        .await
+        .map(|rows| {
+            rows.into_iter()
+                .map(|row| Task {
+                    id: row.id,
+                    title: row.title,
+                    description: row.description,
+                    completed: row.completed,
+                    deadline: Utc.timestamp_opt(row.deadline_unixtimestamp, 0).unwrap(),
+                    given_by: row.given_by,
+                    reminders: vec![],
+                })
+                .collect()
+        })
+    }
 
-        let task_id: i64 = sqlx::query_scalar!("SELECT last_insert_rowid()")
-            .fetch_one(&mut *transaction)
-            .await?;
-
-        for target in targets {
+    async fn add_users_to_task(&self, task_id: i64, users: Vec<UserId>) -> Result<(), sqlx::Error> {
+        let mut transaction = self.pool.begin().await?;
+        for target in users {
             let id: i64 = target.into();
             self.insert_user(target).await?;
             sqlx::query!(
@@ -156,6 +164,24 @@ impl Db {
         }
 
         transaction.commit().await
+    }
+
+    async fn add_task(
+        &self,
+        title: &str,
+        description: Option<&str>,
+        deadline: DateTime<Utc>,
+    ) -> Result<(), sqlx::Error> {
+        let timestamp = deadline.timestamp();
+        sqlx::query!(
+            r#"INSERT INTO tasks (title, description, deadline_unixtimestamp) VALUES (?, ?, ?)"#,
+            title,
+            description,
+            timestamp
+        )
+        .execute(&self.pool)
+        .await
+        .map(|_| ())
     }
 
     pub async fn toggle_task_completion(&self, task_id: i64) -> Result<(), sqlx::Error> {

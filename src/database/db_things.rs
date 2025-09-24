@@ -27,5 +27,6 @@ pub struct Task {
     pub description: Option<String>,
     pub completed: bool,
     pub deadline: chrono::DateTime<Utc>,
+    pub given_by: i64,
     pub reminders: Vec<Reminder>,
 }

@@ -11,7 +11,8 @@ CREATE TABLE tasks (
     title TEXT NOT NULL,
     description TEXT,
     completed BOOLEAN NOT NULL DEFAULT 0,
-    deadline_unixtimestamp INTEGER NOT NULL
+    deadline_unixtimestamp INTEGER NOT NULL,
+    given_by INTEGER NOT NULL
 );
 
 CREATE TABLE task_targets (
