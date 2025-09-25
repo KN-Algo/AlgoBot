@@ -34,9 +34,9 @@ impl From<sqlx::migrate::MigrateError> for BotError {
 impl Display for BotError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let s = match self {
-            Self::Serenity(e) => e.to_string(),
-            Self::Db(e) => e.to_string(),
-            Self::ChronoParse(e) => e.to_string(),
+            Self::Serenity(e) => format!("serenity: {e}"),
+            Self::Db(e) => format!("database: {e}"),
+            Self::ChronoParse(e) => format!("chrono: {e}"),
         };
 
         write!(f, "{}", s)

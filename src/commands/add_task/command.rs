@@ -17,7 +17,7 @@ modal! {
             <input id="description" style="paragraph">"Description"</input>
         </row>
         <row>
-            <input id="deadline" style="short" placeholder="DD-MM-YY">"Deadline"</input>
+            <input id="deadline" style="short" placeholder="DD-MM-YY" min_len=8 max_len=8>"Deadline"</input>
         </row>
     </AddTaskModal>
 }
@@ -28,7 +28,10 @@ pub struct AddTaskCommand;
 impl BotCommand for AddTaskCommand {
     async fn run(&self, ctx: &CommandCtx) -> Result {
         let result = ctx.modal::<AddTaskModal>().await?;
-        let datetime = misc::parse_date_dd_mm_yy(&result.deadline)?;
+        let datetime = match misc::parse_date_dd_mm_yy(&result.deadline) {
+            Ok(d) => d,
+            Err(_) => return ctx.respond("Invalid date!", true).await,
+        };
         let mut task = ctx
             .db
             .add_task(
