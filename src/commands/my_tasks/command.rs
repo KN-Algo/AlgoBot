@@ -19,7 +19,8 @@ pub struct State {
 #[async_trait]
 impl StateTrait for State {
     async fn init(ctx: &CommandCtx) -> TypedResult<Self> {
-        let tasks = ctx.db.get_user_tasks(ctx.interaction.user.id).await?;
+        let mut tasks = ctx.db.get_user_tasks(ctx.interaction.user.id).await?;
+        tasks.sort_unstable_by(|a, b| a.deadline.cmp(&b.deadline));
         Ok(Self {
             page: 0,
             max_page: tasks.len(),

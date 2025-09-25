@@ -6,7 +6,7 @@ pub struct Reminder {
     pub when: chrono::Duration,
 }
 
-#[derive(Debug, sqlx::Type)]
+#[derive(Debug, sqlx::Type, Clone)]
 #[repr(u8)]
 #[sqlx(type_name = "INTEGER")]
 pub enum ReminderWay {

@@ -352,6 +352,28 @@ impl Db {
         Ok(())
     }
 
+    pub async fn get_user_event_reminder(
+        &self,
+        user_id: UserId,
+    ) -> TypedResult<Option<EventReminder>> {
+        let id: i64 = user_id.into();
+        let record = sqlx::query!(r#"SELECT id, user_id, way as "way: ReminderWay", email FROM event_reminders WHERE user_id = ?"#, id)
+                .fetch_one(&self.pool)
+                .await
+                .map(|record| EventReminder {
+                    id: record.id,
+                    user_id: UserId::new(record.user_id.try_into().unwrap()),
+                    way: record.way,
+                    email: record.email,
+                });
+
+        match record {
+            Ok(event) => Ok(Some(event)),
+            Err(sqlx::Error::RowNotFound) => return Ok(None),
+            Err(e) => return Err(e.into()),
+        }
+    }
+
     pub async fn fetch_event_reminders(&self) -> TypedResult<Vec<EventReminder>> {
         Ok(sqlx::query!(
             r#"SELECT id, user_id, way as "way: ReminderWay", email FROM event_reminders"#
