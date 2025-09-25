@@ -103,6 +103,13 @@ pub fn interactive_msg(input: proc_macro::TokenStream) -> proc_macro::TokenStrea
     let handler_name = struct_tag.handler_name;
     let merged_handler_trait_ident = Ident::new(&format!("{}Trait", handler_name.to_string()), handler_name.span());
     let ephemeral = struct_tag.ephemeral;
+    let content = match struct_tag.text {
+        None => quote! {},
+        Some(tag) => {
+            let text = tag.text;
+            quote! { .content(#text) }
+        }
+    };
 
     let code = quote! {
         #[::serenity::async_trait]
@@ -119,7 +126,7 @@ pub fn interactive_msg(input: proc_macro::TokenStream) -> proc_macro::TokenStrea
         #[::serenity::async_trait]
         impl<Handler: #merged_handler_trait_ident> crate::traits::InteractiveMessageTrait for #name<Handler> {
             fn into_msg() -> ::serenity::all::CreateInteractionResponseMessage {
-                ::serenity::all::CreateInteractionResponseMessage::new().components(vec![#(#rows),*]).ephemeral(#ephemeral)
+                ::serenity::all::CreateInteractionResponseMessage::new().components(vec![#(#rows),*]).ephemeral(#ephemeral) #content
             }
 
             async fn with_embeds_command(ctx: &crate::components::CommandCtx, state: ::std::option::Option<&crate::components::State>) -> ::std::vec::Vec<::serenity::all::CreateEmbed> {

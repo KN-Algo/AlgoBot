@@ -8,6 +8,12 @@ pub struct State {
 }
 
 impl State {
+    pub fn _new_<S: StateTrait + Send + Sync + 'static>(state: S) -> Self {
+        Self {
+            state: Arc::new(RwLock::new(state)),
+        }
+    }
+
     pub async fn init<S: StateTrait + Send + Sync + 'static>(
         ctx: &CommandCtx<'_>,
     ) -> TypedResult<Self> {

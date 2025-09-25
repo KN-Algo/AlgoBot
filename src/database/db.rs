@@ -76,7 +76,7 @@ impl Db {
             t.given_by,
             r.id AS reminder_id,
             r.task AS reminder_task,
-            r.when_unixtimestamp as "when"
+            r.when_unixtimestamp as "when: Option<i64>"
         FROM tasks t
         JOIN task_targets tt ON t.id = tt.task_id
         LEFT JOIN reminders r ON r.task = t.id
@@ -100,10 +100,11 @@ impl Db {
                 reminders: Vec::new(),
                 assigned_users: Vec::new(),
             });
-
-            task.reminders.push(Reminder {
-                when: chrono::Duration::new(row.when, 0).unwrap(),
-            });
+            if let Some(when) = row.when {
+                task.reminders.push(Reminder {
+                    when: chrono::Duration::new(when, 0).unwrap(),
+                });
+            }
         }
 
         Ok(group_map.into_values().collect())

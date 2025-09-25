@@ -6,7 +6,9 @@ use serenity::futures::StreamExt;
 use std::time::Duration;
 
 use crate::aliases::{Result, TypedResult};
+use crate::calendar::CalendarHub;
 use crate::components::{CommandCtx, EventCtx, State};
+use crate::database::Db;
 use crate::traits::state::StateTrait;
 use crate::traits::InteractiveMessageTrait;
 
@@ -15,6 +17,7 @@ pub struct InteractiveMessage {
     state: Option<State>,
 
     //i hate this
+    stop: bool,
     has_handler_mutated: bool,
     handler: Box<
         dyn for<'a> Fn(
@@ -41,6 +44,31 @@ impl InteractiveMessage {
         Self::_new::<T>(ctx, None).await
     }
 
+    pub async fn from_event_with_state<
+        T: InteractiveMessageTrait + 'static,
+        S: StateTrait + Send + Sync + 'static,
+    >(
+        ctx: &mut EventCtx<'_>,
+        state: S,
+    ) -> TypedResult<Self> {
+        let state = State::_new_(state);
+        let msg = T::into_msg().embeds(T::with_embeds_event(ctx).await);
+
+        let builder = CreateInteractionResponse::Message(msg);
+        ctx.interaction
+            .create_response(ctx.discord_ctx, builder)
+            .await?;
+        let m = ctx.interaction.get_response(ctx.discord_ctx).await?;
+
+        Ok(Self {
+            msg: m,
+            state: Some(state),
+            has_handler_mutated: false,
+            handler: Box::new(|c| Box::pin(T::handle_event(c))),
+            stop: false,
+        })
+    }
+
     async fn _new<T: InteractiveMessageTrait + 'static>(
         ctx: &CommandCtx<'_>,
         state: Option<State>,
@@ -56,13 +84,14 @@ impl InteractiveMessage {
             state: state,
             has_handler_mutated: false,
             handler: Box::new(|c| Box::pin(T::handle_event(c))),
+            stop: false,
         })
     }
 
-    pub async fn handle_events(&mut self, ctx: &CommandCtx<'_>) -> Result {
+    async fn _handle_events(&mut self, ctx: &Context, db: &Db, calendars: &CalendarHub) -> Result {
         let mut interaction_stream = self
             .msg
-            .await_component_interaction(&ctx.discord_ctx.shard)
+            .await_component_interaction(&ctx.shard)
             .timeout(Duration::from_secs(600))
             .stream();
 
@@ -72,14 +101,18 @@ impl InteractiveMessage {
                 std::mem::replace(&mut self.handler, Box::new(|_| Box::pin(async { Ok(()) })));
 
             let mut new_ctx = EventCtx {
-                discord_ctx: ctx.discord_ctx,
+                discord_ctx: ctx,
                 interaction: &int,
                 msg: self,
-                db: ctx.db,
-                calendars: ctx.calendars,
+                db: db,
+                calendars: calendars,
             };
 
             handler(&mut new_ctx).await?;
+
+            if self.stop {
+                break;
+            }
 
             if self.has_handler_mutated {
                 self.has_handler_mutated = false;
@@ -98,6 +131,20 @@ impl InteractiveMessage {
         }
 
         Ok(())
+    }
+
+    pub async fn handle_events_from_event(&mut self, ctx: &EventCtx<'_>) -> Result {
+        self._handle_events(ctx.discord_ctx, ctx.db, ctx.calendars)
+            .await
+    }
+
+    pub async fn handle_events(&mut self, ctx: &CommandCtx<'_>) -> Result {
+        self._handle_events(ctx.discord_ctx, ctx.db, ctx.calendars)
+            .await
+    }
+
+    pub fn stop(&mut self) {
+        self.stop = true;
     }
 
     pub async fn update_msg_modify<T: InteractiveMessageTrait>(

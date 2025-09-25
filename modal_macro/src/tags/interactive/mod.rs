@@ -5,11 +5,13 @@ pub mod interactive;
 pub mod option;
 pub mod row;
 pub mod selection;
+pub mod text;
 
 pub use button::ButtonTag;
 pub use embed::EmbedTag;
 pub use input::InputTag;
 pub use interactive::InteractiveTag;
+pub use text::TextTag;
 
 pub use option::OptionTag;
 pub use row::RowTag;

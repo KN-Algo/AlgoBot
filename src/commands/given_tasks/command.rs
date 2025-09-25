@@ -51,8 +51,8 @@ interactive_msg! {
         <row>
             <button id="prev">"<"</button>
             <button id="add_users" style="secondary">"+ Add Users"</button>
-            <button id="edit" style="success">"Edit Task"</button>
-            <button id="delete" style="danger">"Delete Task"</button>
+            <button id="edit" style="success">"✏️"</button>
+            <button id="delete" style="danger">"🗑️"</button>
             <button id="next">">"</button>
         </row>
     </GivenTasksMsg>

@@ -11,6 +11,7 @@ pub struct InteractiveTag {
     pub embeds: Vec<EmbedTag>,
     pub handler_name: Ident,
     pub ephemeral: LitBool,
+    pub text: Option<TextTag>,
 }
 
 impl Parse for InteractiveTag {
@@ -20,6 +21,7 @@ impl Parse for InteractiveTag {
 
         let mut rows = vec![];
         let mut embeds = vec![];
+        let mut text = None;
 
         while input.peek(Token![<]) && !input.peek2(Token![/]) {
             input.parse::<Token![<]>()?;
@@ -34,6 +36,8 @@ impl Parse for InteractiveTag {
                 "embed" => {
                     embeds.push(input.parse::<EmbedTag>()?);
                 }
+
+                "text" => text = Some(input.parse::<TextTag>()?),
 
                 _ => {
                     return Err(syn::Error::new(next_tag.name.span(), "unknown tag"));
@@ -69,6 +73,7 @@ impl Parse for InteractiveTag {
             handler_name,
             embeds,
             ephemeral,
+            text,
         })
     }
 }
