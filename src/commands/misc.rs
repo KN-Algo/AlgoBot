@@ -69,7 +69,14 @@ macro_rules! add_users_to_task_from_msg {
             Some(msgs) => msgs,
         };
 
-        if user_response.mentions.len() == 0 {
+        let mentions = user_response
+            .mentions
+            .into_iter()
+            .map(|user| user.id)
+            .filter(|id| id.get() != 1319203114917822514)
+            .collect::<Vec<::serenity::all::UserId>>();
+
+        if mentions.len() == 0 {
             bot_response
                 .edit(
                     $ctx,
@@ -79,12 +86,6 @@ macro_rules! add_users_to_task_from_msg {
             return Ok(());
         }
 
-        let mentions = user_response
-            .mentions
-            .into_iter()
-            .map(|user| user.id)
-            .filter(|id| id.get() != 1319203114917822514)
-            .collect();
         $task.assigned_users.extend(&mentions);
         $ctx.db.add_users_to_task($task.id, mentions).await?;
         bot_response

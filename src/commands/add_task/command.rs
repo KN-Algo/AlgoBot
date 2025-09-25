@@ -30,7 +30,7 @@ impl BotCommand for AddTaskCommand {
         let result = ctx.modal::<AddTaskModal>().await?;
         let datetime = match misc::parse_date_dd_mm_yy(&result.deadline) {
             Ok(d) => d,
-            Err(_) => return ctx.respond("Invalid date!", true).await,
+            Err(_) => return result.respond("Invalid date!", true).await,
         };
         let mut task = ctx
             .db

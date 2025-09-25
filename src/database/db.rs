@@ -218,7 +218,7 @@ impl Db {
                 .await?;
             sqlx::query!(
                 r#"
-                INSERT INTO task_targets (task_id, user_id)
+                INSERT OR IGNORE INTO task_targets (task_id, user_id)
                 VALUES (?, ?)
                 "#,
                 task_id,

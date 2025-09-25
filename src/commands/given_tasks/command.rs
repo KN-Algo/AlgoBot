@@ -13,7 +13,7 @@ use crate::{
 pub struct GivenTasksCommand;
 
 modal! {
-    <EditTaskModal title="Add Task" duration=600>
+    <EditTaskModal title="Edit Task" duration=600>
         <row>
             <input id="title" style="short" required=false placeholder="edit">"Title"</input>
         </row>
@@ -21,7 +21,7 @@ modal! {
             <input id="description" style="paragraph" required=false placeholder="edit">"Description"</input>
         </row>
         <row>
-            <input id="deadline" style="short" required=false placeholder="edit (DD-MM-YY)">"Deadline"</input>
+            <input id="deadline" style="short" required=false placeholder="edit (DD-MM-YY)" min_len=8 max_len=8>"Deadline"</input>
         </row>
     </EditTaskModal>
 }
@@ -157,6 +157,6 @@ impl BotCommand for GivenTasksCommand {
     }
 
     fn register(&self, create: CreateCommand) -> CreateCommand {
-        create.description("Returns tasks you gave to others")
+        create.description("Shows tasks you gave to others")
     }
 }
