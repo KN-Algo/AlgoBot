@@ -1,12 +1,9 @@
-use chrono::{NaiveDate, TimeZone, Utc};
 use modal_macro::modal;
-use serenity::{
-    all::{CreateCommand, EditMessage},
-    async_trait,
-};
+use serenity::{all::CreateCommand, async_trait};
 
 use crate::{
     aliases::Result,
+    commands::misc,
     components::CommandCtx,
     traits::{BotCommand, Interactable},
 };
@@ -20,7 +17,7 @@ modal! {
             <input id="description" style="paragraph">"Description"</input>
         </row>
         <row>
-            <input id="deadline" style="short">"Deadline in DD-MM-YY format"</input>
+            <input id="deadline" style="short" placeholder="DD-MM-YY">"Deadline"</input>
         </row>
     </AddTaskModal>
 }
@@ -31,14 +28,8 @@ pub struct AddTaskCommand;
 impl BotCommand for AddTaskCommand {
     async fn run(&self, ctx: &CommandCtx) -> Result {
         let result = ctx.modal::<AddTaskModal>().await?;
-        let naive = match NaiveDate::parse_from_str(&result.deadline, "%d-%m-%y") {
-            Ok(d) => d,
-            Err(_) => return ctx.respond("invalid deadline date", true).await,
-        };
-        let naive_date = naive.and_hms_opt(0, 0, 0).unwrap();
-        let datetime = Utc.from_utc_datetime(&naive_date);
-
-        let task = ctx
+        let datetime = misc::parse_date_dd_mm_yy(&result.deadline)?;
+        let mut task = ctx
             .db
             .add_task(
                 &result.title,
@@ -48,34 +39,7 @@ impl BotCommand for AddTaskCommand {
             )
             .await?;
 
-        let (mut bot_response, user_response) = match result
-            .respond_and_get_response(
-                "Respond to this message with @Mentions to add users to the task",
-                "Timed Out!",
-                ctx.interaction.user.id,
-            )
-            .await?
-        {
-            None => return Ok(()),
-            Some(msgs) => msgs,
-        };
-
-        if user_response.mentions.len() == 0 {
-            bot_response
-                .edit(ctx, EditMessage::new().content("No users mentioned!"))
-                .await?;
-            return Ok(());
-        }
-
-        let mentions = user_response
-            .mentions
-            .into_iter()
-            .map(|user| user.id)
-            .collect();
-        ctx.db.add_users_to_task(task.id, mentions).await?;
-        bot_response
-            .edit(ctx, EditMessage::new().content("Users added to the task!"))
-            .await?;
+        crate::add_users_to_task_from_msg!(result, ctx, ctx.interaction.user.id, task);
         Ok(())
     }
 

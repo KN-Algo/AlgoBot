@@ -123,10 +123,12 @@ pub fn interactive_msg(input: proc_macro::TokenStream) -> proc_macro::TokenStrea
             }
 
             async fn with_embeds_command(ctx: &crate::components::CommandCtx, state: ::std::option::Option<&crate::components::State>) -> ::std::vec::Vec<::serenity::all::CreateEmbed> {
+                use crate::traits::into_embed::IntoEmbedInteractive;
                 ::std::vec![#(#embeds_comm::from_command(ctx, state).await)*]
             }
 
-            async fn with_embeds_event(ctx: &mut crate::components::EventCtx) -> ::std::vec::Vec<::serenity::all::CreateEmbed> {
+            async fn with_embeds_event(ctx: &crate::components::EventCtx) -> ::std::vec::Vec<::serenity::all::CreateEmbed> {
+                use crate::traits::into_embed::IntoEmbedInteractive;
                 ::std::vec![#(#embeds_event::from_event(ctx).await)*]
             }
 
@@ -241,7 +243,7 @@ pub fn modal(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 
         }
 
-        impl<'ctx> crate::traits::Interactable<'ctx> for #struct_name<'ctx> {
+        impl crate::traits::Interactable<'_> for #struct_name<'_> {
             fn discord_ctx(&self) -> &::serenity::all::Context {
                 self.discord_ctx
             }

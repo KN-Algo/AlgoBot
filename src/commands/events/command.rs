@@ -1,13 +1,12 @@
 use serenity::{all::CreateCommand, async_trait};
 
 use crate::{
-    aliases::Result,
+    aliases::{Result, TypedResult},
     components::{CommandCtx, InteractiveMessage},
     traits::{BotCommand, StateTrait},
 };
 
 use crate::commands::events::embed::Embed;
-use crate::traits::into_embed::IntoEmbedInteractive;
 use crate::{components::EventCtx, traits::Interactable};
 use modal_macro::interactive_msg;
 
@@ -19,12 +18,12 @@ pub struct State {
 
 #[async_trait]
 impl StateTrait for State {
-    async fn init(ctx: &CommandCtx) -> Self {
+    async fn init(ctx: &CommandCtx) -> TypedResult<Self> {
         let calendar = ctx.calendars.get_calendar("KN ALGO").await.unwrap();
-        Self {
+        Ok(Self {
             page: 0,
             max: calendar.events.len(),
-        }
+        })
     }
 }
 
@@ -52,7 +51,7 @@ impl HandlerTrait for Handler {
     }
     async fn handle_next(ctx: &mut EventCtx) -> Result {
         let mut state = ctx.msg.clone_state::<State>().await.unwrap();
-        if state.page == state.max {
+        if state.page == state.max - 1 {
             return ctx.acknowlage().await;
         }
 

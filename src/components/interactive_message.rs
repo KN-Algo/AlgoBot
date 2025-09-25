@@ -32,7 +32,7 @@ impl InteractiveMessage {
     >(
         ctx: &CommandCtx<'_>,
     ) -> TypedResult<Self> {
-        Self::_new::<T>(ctx, Some(State::init::<S>(ctx).await)).await
+        Self::_new::<T>(ctx, Some(State::init::<S>(ctx).await?)).await
     }
 
     pub async fn new<T: InteractiveMessageTrait + 'static>(

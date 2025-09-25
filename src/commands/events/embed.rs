@@ -53,7 +53,7 @@ impl IntoEmbedInteractive for Embed {
         Self::create(&ctx.calendars, &state.unwrap()).await
     }
 
-    async fn from_event(ctx: &mut EventCtx) -> CreateEmbed {
+    async fn from_event(ctx: &EventCtx) -> CreateEmbed {
         let state = ctx.msg.clone_state().await.unwrap();
         let e = Self::create(ctx.calendars, &state).await;
         e

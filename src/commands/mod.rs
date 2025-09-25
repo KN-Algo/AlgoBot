@@ -7,6 +7,8 @@ pub mod add_task;
 pub mod events;
 pub mod given_tasks;
 
+pub mod misc;
+
 pub use embed_test::EmbedTest;
 pub use interactive_test::InterTest;
 pub use modal_test::ModalTest;

@@ -1,17 +1,19 @@
 use std::{any::Any, sync::Arc};
 use tokio::sync::RwLock;
 
-use crate::{components::CommandCtx, traits::state::StateTrait};
+use crate::{aliases::TypedResult, components::CommandCtx, traits::state::StateTrait};
 
 pub struct State {
     state: Arc<dyn Any + Send + Sync>,
 }
 
 impl State {
-    pub async fn init<S: StateTrait + Send + Sync + 'static>(ctx: &CommandCtx<'_>) -> Self {
-        Self {
-            state: Arc::new(RwLock::new(S::init(ctx).await)),
-        }
+    pub async fn init<S: StateTrait + Send + Sync + 'static>(
+        ctx: &CommandCtx<'_>,
+    ) -> TypedResult<Self> {
+        Ok(Self {
+            state: Arc::new(RwLock::new(S::init(ctx).await?)),
+        })
     }
 
     pub async fn clone<S: StateTrait + Send + Sync + 'static>(&self) -> Option<S> {

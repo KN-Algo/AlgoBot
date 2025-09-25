@@ -1,8 +1,8 @@
-use std::collections::HashMap;
-
 use chrono::{DateTime, TimeZone, Utc};
 use serenity::all::UserId;
+use sqlx::Row;
 use sqlx::{Pool, Sqlite};
+use std::collections::HashMap;
 
 use crate::{
     aliases::{Result, TypedResult},
@@ -98,6 +98,7 @@ impl Db {
                 given_by: UserId::new(row.given_by.try_into().unwrap()),
                 deadline: Utc.timestamp_opt(row.deadline_unixtimestamp, 0).unwrap(),
                 reminders: Vec::new(),
+                assigned_users: Vec::new(),
             });
 
             task.reminders.push(Reminder {
@@ -123,27 +124,74 @@ impl Db {
     pub async fn get_given_tasks(&self, discord_id: UserId) -> TypedResult<Vec<Task>> {
         self.insert_user(discord_id).await?;
         let id: i64 = discord_id.into();
-        Ok(sqlx::query!(
+
+        // 1. Fetch tasks given by this user
+        let task_rows = sqlx::query!(
             r#"
-        SELECT * from tasks WHERE given_by = ?
+        SELECT * FROM tasks WHERE given_by = ?
         "#,
             id
         )
         .fetch_all(&self.pool)
-        .await
-        .map(|rows| {
-            rows.into_iter()
-                .map(|row| Task {
-                    id: row.id,
-                    title: row.title,
-                    description: row.description,
-                    completed: row.completed,
-                    deadline: Utc.timestamp_opt(row.deadline_unixtimestamp, 0).unwrap(),
-                    given_by: UserId::new(row.given_by.try_into().unwrap()),
-                    reminders: vec![],
-                })
-                .collect()
-        })?)
+        .await?;
+
+        let task_ids: Vec<i64> = task_rows.iter().map(|row| row.id).collect();
+
+        // 2. If no tasks, return early
+        if task_ids.is_empty() {
+            return Ok(vec![]);
+        }
+
+        // 3. Dynamically build the IN clause and bind parameters
+        let placeholders = task_ids
+            .iter()
+            .enumerate()
+            .map(|(i, _)| format!("?{}", i + 1))
+            .collect::<Vec<_>>()
+            .join(", ");
+
+        let sql = format!(
+            "SELECT task_id, user_id FROM task_targets WHERE task_id IN ({})",
+            placeholders
+        );
+
+        // Build query with args
+        let mut query = sqlx::query(&sql);
+        for id in &task_ids {
+            query = query.bind(id);
+        }
+
+        let target_rows = query.fetch_all(&self.pool).await?;
+
+        // 4. Map task_id => Vec<UserId>
+        use std::collections::HashMap;
+        let mut assignments: HashMap<i64, Vec<UserId>> = HashMap::new();
+        for row in target_rows {
+            // Since we used sqlx::query(), the fields need to be accessed by name
+            let task_id: i64 = row.try_get("task_id")?;
+            let user_id: i64 = row.try_get("user_id")?;
+            assignments
+                .entry(task_id)
+                .or_default()
+                .push(UserId::new(user_id as u64));
+        }
+
+        // 5. Assemble Task list
+        let tasks = task_rows
+            .into_iter()
+            .map(|row| Task {
+                id: row.id,
+                title: row.title,
+                description: row.description,
+                completed: row.completed,
+                deadline: Utc.timestamp_opt(row.deadline_unixtimestamp, 0).unwrap(),
+                given_by: UserId::new(row.given_by as u64),
+                reminders: vec![],
+                assigned_users: assignments.remove(&row.id).unwrap_or_default(),
+            })
+            .collect();
+
+        Ok(tasks)
     }
 
     pub async fn get_assigned_users(&self, task_id: i64) -> TypedResult<Vec<UserId>> {
@@ -222,7 +270,14 @@ impl Db {
             deadline: Utc.timestamp_opt(row.deadline_unixtimestamp, 0).unwrap(),
             given_by: UserId::new(row.given_by.try_into().unwrap()),
             reminders: vec![],
+            assigned_users: vec![],
         })
+    }
+
+    pub async fn edit_task(&self, new_task: &Task) -> Result {
+        let timestamp = new_task.deadline.timestamp();
+        sqlx::query!(r#"UPDATE tasks SET title = ?, description = ?, deadline_unixtimestamp = ? WHERE id = ?"#, new_task.title, new_task.description, timestamp, new_task.id).execute(&self.pool).await?;
+        Ok(())
     }
 
     pub async fn toggle_task_completion(&self, task_id: i64) -> Result {
@@ -236,6 +291,13 @@ impl Db {
         )
         .execute(&self.pool)
         .await?;
+        Ok(())
+    }
+
+    pub async fn delete_task(&self, task_id: i64) -> Result {
+        sqlx::query!(r#"DELETE FROM tasks WHERE id = ?"#, task_id)
+            .execute(&self.pool)
+            .await?;
         Ok(())
     }
 

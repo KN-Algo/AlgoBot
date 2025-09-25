@@ -2,8 +2,8 @@ use serenity::{all::GatewayIntents, Client};
 
 use crate::{
     commands::{
-        add_task::AddTaskCommand, events::command::EventsCommand, EmbedTest, InterTest, ModalTest,
-        Ping,
+        add_task::AddTaskCommand, events::command::EventsCommand, given_tasks::GivenTasksCommand,
+        EmbedTest, InterTest, ModalTest, Ping,
     },
     database::Db,
     handler::Handler,
@@ -51,11 +51,9 @@ async fn main() {
 
     let handler = Handler::new(db, hub)
         .register_command("ping", Ping)
-        .register_command("modal_test", ModalTest)
-        .register_command("inter_test", InterTest)
-        .register_command("embed_test", EmbedTest)
         .register_command("events", EventsCommand)
-        .register_command("add_task", AddTaskCommand);
+        .register_command("add_task", AddTaskCommand)
+        .register_command("given_tasks", GivenTasksCommand);
 
     let mut client = match Client::builder(token, intents).event_handler(handler).await {
         Ok(c) => {

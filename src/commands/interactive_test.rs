@@ -1,4 +1,4 @@
-use crate::aliases::Result;
+use crate::aliases::{Result, TypedResult};
 use crate::calendar::CalendarHub;
 use crate::components::{CommandCtx, InteractiveMessage};
 use crate::components::{EventCtx, State};
@@ -19,8 +19,8 @@ struct InteractiveState {
 
 #[async_trait]
 impl StateTrait for InteractiveState {
-    async fn init(_ctx: &CommandCtx) -> Self {
-        Self { counter: 1 }
+    async fn init(_ctx: &CommandCtx) -> TypedResult<Self> {
+        Ok(Self { counter: 1 })
     }
 }
 
@@ -57,7 +57,7 @@ impl EmbedTest {
 
 #[async_trait]
 impl IntoEmbedInteractive for EmbedTest {
-    async fn from_event(ctx: &mut EventCtx) -> CreateEmbed {
+    async fn from_event(ctx: &EventCtx) -> CreateEmbed {
         Self::create(ctx.calendars).await
     }
 

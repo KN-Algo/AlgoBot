@@ -1,7 +1,7 @@
 use chrono::Utc;
 use serenity::all::UserId;
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct Reminder {
     pub when: chrono::Duration,
 }
@@ -23,7 +23,7 @@ pub struct EventReminder {
     pub email: Option<String>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Task {
     pub id: i64,
     pub title: String,
@@ -32,4 +32,5 @@ pub struct Task {
     pub deadline: chrono::DateTime<Utc>,
     pub given_by: UserId,
     pub reminders: Vec<Reminder>,
+    pub assigned_users: Vec<UserId>,
 }

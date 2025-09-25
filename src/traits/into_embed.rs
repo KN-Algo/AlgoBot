@@ -21,5 +21,5 @@ impl<T: IntoEmbed> IntoResponse for T {
 #[async_trait]
 pub trait IntoEmbedInteractive {
     async fn from_command(ctx: &CommandCtx, state: Option<&State>) -> CreateEmbed;
-    async fn from_event(ctx: &mut EventCtx) -> CreateEmbed;
+    async fn from_event(ctx: &EventCtx) -> CreateEmbed;
 }
