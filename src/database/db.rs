@@ -95,7 +95,7 @@ impl Db {
                 title: row.title,
                 completed: row.completed,
                 description: row.description,
-                given_by: row.given_by,
+                given_by: UserId::new(row.given_by.try_into().unwrap()),
                 deadline: Utc.timestamp_opt(row.deadline_unixtimestamp, 0).unwrap(),
                 reminders: Vec::new(),
             });
@@ -139,9 +139,23 @@ impl Db {
                     description: row.description,
                     completed: row.completed,
                     deadline: Utc.timestamp_opt(row.deadline_unixtimestamp, 0).unwrap(),
-                    given_by: row.given_by,
+                    given_by: UserId::new(row.given_by.try_into().unwrap()),
                     reminders: vec![],
                 })
+                .collect()
+        })?)
+    }
+
+    pub async fn get_assigned_users(&self, task_id: i64) -> TypedResult<Vec<UserId>> {
+        Ok(sqlx::query!(
+            r#"SELECT user_id FROM task_targets where task_id = ?"#,
+            task_id
+        )
+        .fetch_all(&self.pool)
+        .await
+        .map(|rows| {
+            rows.into_iter()
+                .map(|row| UserId::new(row.user_id.try_into().unwrap()))
                 .collect()
         })?)
     }
@@ -206,7 +220,7 @@ impl Db {
             description: row.description,
             completed: row.completed,
             deadline: Utc.timestamp_opt(row.deadline_unixtimestamp, 0).unwrap(),
-            given_by: row.given_by,
+            given_by: UserId::new(row.given_by.try_into().unwrap()),
             reminders: vec![],
         })
     }
@@ -276,11 +290,18 @@ impl Db {
     }
 
     pub async fn fetch_event_reminders(&self) -> TypedResult<Vec<EventReminder>> {
-        Ok(sqlx::query_as!(
-            EventReminder,
+        Ok(sqlx::query!(
             r#"SELECT id, user_id, way as "way: ReminderWay", email FROM event_reminders"#
         )
         .fetch_all(&self.pool)
-        .await?)
+        .await?
+        .into_iter()
+        .map(|record| EventReminder {
+            id: record.id,
+            user_id: UserId::new(record.user_id.try_into().unwrap()),
+            way: record.way,
+            email: record.email,
+        })
+        .collect())
     }
 }

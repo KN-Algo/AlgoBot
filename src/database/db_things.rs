@@ -1,4 +1,5 @@
 use chrono::Utc;
+use serenity::all::UserId;
 
 #[derive(Clone)]
 pub struct Reminder {
@@ -17,7 +18,7 @@ pub enum ReminderWay {
 #[derive(Debug, sqlx::FromRow)]
 pub struct EventReminder {
     pub id: i64,
-    pub user_id: i64,
+    pub user_id: UserId,
     pub way: ReminderWay,
     pub email: Option<String>,
 }
@@ -29,6 +30,6 @@ pub struct Task {
     pub description: String,
     pub completed: bool,
     pub deadline: chrono::DateTime<Utc>,
-    pub given_by: i64,
+    pub given_by: UserId,
     pub reminders: Vec<Reminder>,
 }
