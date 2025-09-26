@@ -65,20 +65,26 @@ impl HandlerTrait for Handler {
     async fn handle_prev(ctx: &mut EventCtx) -> Result {
         let mut state = ctx.msg.clone_state::<State>().await.unwrap();
         if state.page == 0 {
-            return ctx.acknowlage().await;
+            state.page = state.max_page - 1;
+        } else {
+            state.page -= 1;
         }
 
-        state.page -= 1;
         ctx.msg.write_state(state).await;
         ctx.update_msg::<GivenTasksMsg<Handler>>().await
     }
     async fn handle_next(ctx: &mut EventCtx) -> Result {
         let mut state = ctx.msg.clone_state::<State>().await.unwrap();
-        if state.max_page == 0 || state.page == state.max_page - 1 {
+        if state.max_page == 0 {
             return ctx.acknowlage().await;
         }
 
-        state.page += 1;
+        if state.page == state.max_page - 1 {
+            state.page = 0;
+        } else {
+            state.page += 1;
+        }
+
         ctx.msg.write_state(state).await;
         ctx.update_msg::<GivenTasksMsg<Handler>>().await
     }

@@ -38,6 +38,12 @@ CREATE TABLE event_reminders (
     FOREIGN KEY (user_id) REFERENCES users(discord_id) ON DELETE CASCADE
 );
 
+CREATE TABLE custom_events (
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    summary TEXT NOT NULL,
+    start INTEGER NOT NULL
+);
+
 CREATE INDEX idx_reminders_task ON reminders(task);
 CREATE INDEX idx_task_targets_user_id ON task_targets(user_id);
 

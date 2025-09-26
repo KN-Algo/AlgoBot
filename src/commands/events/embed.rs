@@ -27,10 +27,9 @@ impl Embed {
             .title(event.summary.clone())
     }
 
-    async fn create(calendars: &CalendarHub, state: &State) -> CreateEmbed {
-        let calendar = calendars.get_calendar("KN ALGO").await.unwrap();
+    async fn create(state: &State) -> CreateEmbed {
         let embed = Self::into_embed();
-        let embed = match calendar.events.get(state.page) {
+        let embed = match state.events.get(state.page) {
             None => embed.field("Event", "No events", false),
             Some(event) => Self::format_event(embed, event),
         };
@@ -46,16 +45,15 @@ impl Embed {
 #[async_trait]
 impl IntoEmbedInteractive for Embed {
     async fn from_command(
-        ctx: &CommandCtx,
+        _ctx: &CommandCtx,
         state: Option<&crate::components::State>,
     ) -> CreateEmbed {
         let state = state.unwrap().clone::<State>().await;
-        Self::create(&ctx.calendars, &state.unwrap()).await
+        Self::create(&state.unwrap()).await
     }
 
     async fn from_event(ctx: &EventCtx) -> CreateEmbed {
         let state = ctx.msg.clone_state().await.unwrap();
-        let e = Self::create(ctx.calendars, &state).await;
-        e
+        Self::create(&state).await
     }
 }

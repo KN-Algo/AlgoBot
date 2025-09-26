@@ -2,6 +2,7 @@ use serenity::{all::CreateCommand, async_trait};
 
 use crate::{
     aliases::{Result, TypedResult},
+    calendar::Event,
     components::{CommandCtx, InteractiveMessage},
     traits::{BotCommand, StateTrait},
 };
@@ -14,15 +15,29 @@ use modal_macro::interactive_msg;
 pub struct State {
     pub page: usize,
     pub max: usize,
+    pub events: Vec<Event>,
 }
 
 #[async_trait]
 impl StateTrait for State {
     async fn init(ctx: &CommandCtx) -> TypedResult<Self> {
-        let calendar = ctx.calendars.get_calendar("KN ALGO").await.unwrap();
+        let mut events = ctx
+            .calendars
+            .get_calendar("KN ALGO")
+            .await
+            .unwrap()
+            .events
+            .clone();
+
+        let custom_events = ctx.db.get_custom_events().await?;
+
+        events.extend(custom_events);
+        events.sort_unstable();
+
         Ok(Self {
             page: 0,
-            max: calendar.events.len(),
+            max: events.len(),
+            events,
         })
     }
 }
@@ -42,20 +57,27 @@ impl HandlerTrait for Handler {
     async fn handle_prev(ctx: &mut EventCtx) -> Result {
         let mut state = ctx.msg.clone_state::<State>().await.unwrap();
         if state.page == 0 {
-            return ctx.acknowlage().await;
+            state.page = state.max - 1;
+        } else {
+            state.page -= 1;
         }
 
-        state.page -= 1;
         ctx.msg.write_state::<State>(state).await;
         ctx.update_msg::<AllEvents<Handler>>().await
     }
     async fn handle_next(ctx: &mut EventCtx) -> Result {
         let mut state = ctx.msg.clone_state::<State>().await.unwrap();
-        if state.page == state.max - 1 {
+
+        if state.max == 0 {
             return ctx.acknowlage().await;
         }
 
-        state.page += 1;
+        if state.page == state.max - 1 {
+            state.page = 0
+        } else {
+            state.page += 1;
+        }
+
         ctx.msg.write_state::<State>(state).await;
         ctx.update_msg::<AllEvents<Handler>>().await
     }

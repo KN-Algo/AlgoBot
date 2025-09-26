@@ -20,16 +20,19 @@ impl IntoEmbed for Embed {
 
 impl Embed {
     fn format_task(embed: CreateEmbed, task: &Task) -> CreateEmbed {
-        let targets_string = task
-            .assigned_users
-            .iter()
-            .map(|id| format!("<@{}> ", id))
-            .collect::<String>();
+        let targets_string = if task.assigned_users.is_empty() {
+            "No people assigned".to_owned()
+        } else {
+            task.assigned_users
+                .iter()
+                .map(|id| format!("<@{}> ", id))
+                .collect::<String>()
+        };
         embed.title(task.title.clone()).fields(vec![
             ("Description", task.description.clone(), false),
             (
                 "Deadline",
-                format!("<t:{}:F>", task.deadline.timestamp()),
+                format!("<t:{}:D>", task.deadline.timestamp()),
                 true,
             ),
             (

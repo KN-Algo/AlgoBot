@@ -4,6 +4,7 @@ use sqlx::Row;
 use sqlx::{Pool, Sqlite};
 use std::collections::HashMap;
 
+use crate::calendar::Event;
 use crate::{
     aliases::{Result, TypedResult},
     database::{EventReminder, Reminder, ReminderWay, Task},
@@ -388,5 +389,32 @@ impl Db {
             email: record.email,
         })
         .collect())
+    }
+
+    pub async fn add_custom_event(&self, summary: &str, start: DateTime<Utc>) -> Result {
+        let stamp = start.timestamp();
+        sqlx::query!(
+            r#"INSERT INTO custom_events (summary, start) VALUES (?, ?)"#,
+            summary,
+            stamp
+        )
+        .execute(&self.pool)
+        .await?;
+        Ok(())
+    }
+
+    pub async fn get_custom_events(&self) -> TypedResult<Vec<Event>> {
+        Ok(sqlx::query!(r#"SELECT * FROM custom_events"#)
+            .fetch_all(&self.pool)
+            .await
+            .map(|rows| {
+                rows.into_iter()
+                    .map(|row| Event {
+                        uid: 0.to_string(),
+                        summary: row.summary,
+                        start: Utc.timestamp_opt(row.start, 0).unwrap(),
+                    })
+                    .collect()
+            })?)
     }
 }

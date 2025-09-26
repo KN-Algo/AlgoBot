@@ -20,17 +20,20 @@ impl IntoEmbed for Embed {
 
 impl Embed {
     fn format_task(embed: CreateEmbed, task: &Task) -> CreateEmbed {
-        let reminder_string = task
-            .reminders
-            .iter()
-            .map(|reminder| format!("{} Days Before\n", reminder.when.num_days()))
-            .collect::<String>();
+        let reminder_string = if task.reminders.is_empty() {
+            "No reminders".to_owned()
+        } else {
+            task.reminders
+                .iter()
+                .map(|reminder| format!("{} Days Before\n", reminder.when.num_days()))
+                .collect::<String>()
+        };
 
         embed.title(task.title.clone()).fields(vec![
             ("Description", task.description.clone(), false),
             (
                 "Deadline",
-                format!("<t:{}:F>", task.deadline.timestamp()),
+                format!("<t:{}:D>", task.deadline.timestamp()),
                 true,
             ),
             (
