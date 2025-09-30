@@ -43,7 +43,7 @@ impl StateTrait for State {
 }
 
 interactive_msg! {
-    <AllEvents handler=Handler ephemeral=true>
+    <AllEvents handler=Handler state=State ephemeral=true>
         <embed>Embed</embed>
         <row>
             <button id="prev">"<"</button>
@@ -88,7 +88,7 @@ pub struct EventsCommand;
 #[async_trait]
 impl BotCommand for EventsCommand {
     async fn run(&self, ctx: &CommandCtx) -> Result {
-        let mut msg = InteractiveMessage::new_with_state::<AllEvents<Handler>, State>(ctx).await?;
+        let mut msg = InteractiveMessage::new::<AllEvents<Handler>>(ctx).await?;
         msg.handle_events(ctx).await
     }
 

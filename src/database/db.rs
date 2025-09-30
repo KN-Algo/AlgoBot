@@ -1,10 +1,11 @@
 use chrono::{DateTime, TimeZone, Utc};
 use serenity::all::UserId;
-use sqlx::Row;
+use sqlx::{Acquire, Row};
 use sqlx::{Pool, Sqlite};
 use std::collections::HashMap;
 
 use crate::calendar::Event;
+use crate::database::ReminderGroup;
 use crate::{
     aliases::{Result, TypedResult},
     database::{EventReminder, Reminder, ReminderWay, Task},
@@ -115,18 +116,23 @@ impl Db {
         &self,
         task_id: i64,
         user_id: UserId,
-        when: chrono::Duration,
+        when: Vec<chrono::Duration>,
     ) -> Result {
-        let secs = when.num_seconds();
         let id: i64 = user_id.into();
-        sqlx::query!(
-            r#"INSERT INTO reminders (task, when_unixtimestamp, user_id) VALUES (?, ?, ?)"#,
-            task_id,
-            secs,
-            id
-        )
-        .execute(&self.pool)
-        .await?;
+        let mut trans = self.pool.begin().await?;
+        for w in when {
+            let secs = w.num_seconds();
+            sqlx::query!(
+                r#"INSERT INTO reminders (task, when_unixtimestamp, user_id) VALUES (?, ?, ?)"#,
+                task_id,
+                secs,
+                id
+            )
+            .execute(&mut *trans)
+            .await?;
+        }
+
+        trans.commit().await?;
         Ok(())
     }
 
@@ -329,62 +335,67 @@ impl Db {
         &self,
         discord_id: UserId,
         way: ReminderWay,
+        group: ReminderGroup,
         email: Option<String>,
     ) -> Result {
         let id: i64 = discord_id.into();
         self.insert_user(discord_id).await?;
         sqlx::query!(
             r#"
-                INSERT INTO event_reminders (user_id, way, email)
-                VALUES (?, ?, ?)
+                INSERT INTO event_reminders (user_id, way, email, reminder_group)
+                VALUES (?, ?, ?, ?)
                 "#,
             id,
             way,
-            email
+            email,
+            group
         )
         .execute(&self.pool)
         .await?;
         Ok(())
     }
 
-    pub async fn delete_event_reminder(&self, discord_id: UserId) -> Result {
+    pub async fn delete_event_reminder(
+        &self,
+        discord_id: UserId,
+        group: ReminderGroup,
+        way: ReminderWay,
+    ) -> Result {
         let id: i64 = discord_id.into();
         sqlx::query!(
             r#"
-                DELETE FROM event_reminders WHERE user_id = ?
+                DELETE FROM event_reminders WHERE user_id = ? AND reminder_group = ? AND way = ?
             "#,
             id,
+            group,
+            way
         )
         .execute(&self.pool)
         .await?;
         Ok(())
     }
 
-    pub async fn get_user_event_reminder(
+    pub async fn get_user_event_reminders(
         &self,
         user_id: UserId,
-    ) -> TypedResult<Option<EventReminder>> {
+    ) -> TypedResult<Vec<EventReminder>> {
         let id: i64 = user_id.into();
-        let record = sqlx::query!(r#"SELECT id, user_id, way as "way: ReminderWay", email FROM event_reminders WHERE user_id = ?"#, id)
-                .fetch_one(&self.pool)
-                .await
+        Ok(sqlx::query!(r#"SELECT id, user_id, way as "way: ReminderWay", reminder_group as "rgroup: ReminderGroup", email FROM event_reminders WHERE user_id = ?"#, id)
+                .fetch_all(&self.pool)
+                .await?
+                .into_iter()
                 .map(|record| EventReminder {
                     id: record.id,
                     user_id: UserId::new(record.user_id.try_into().unwrap()),
                     way: record.way,
                     email: record.email,
-                });
-
-        match record {
-            Ok(event) => Ok(Some(event)),
-            Err(sqlx::Error::RowNotFound) => return Ok(None),
-            Err(e) => return Err(e.into()),
-        }
+                    group: record.rgroup
+                }).collect())
     }
 
     pub async fn fetch_event_reminders(&self) -> TypedResult<Vec<EventReminder>> {
         Ok(sqlx::query!(
-            r#"SELECT id, user_id, way as "way: ReminderWay", email FROM event_reminders"#
+            r#"SELECT id, user_id, way as "way: ReminderWay", email, reminder_group as "rgroup: ReminderGroup" FROM event_reminders"#
         )
         .fetch_all(&self.pool)
         .await?
@@ -394,6 +405,7 @@ impl Db {
             user_id: UserId::new(record.user_id.try_into().unwrap()),
             way: record.way,
             email: record.email,
+            group: record.rgroup
         })
         .collect())
     }

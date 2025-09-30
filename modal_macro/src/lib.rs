@@ -5,11 +5,151 @@ use crate::misc::RowComponent;
 
 use proc_macro2::{Span, TokenStream};
 use quote::{quote };
-use syn::{ parse_macro_input, Ident};
+use syn::{ parse_macro_input, spanned::Spanned, Data, DeriveInput, Field, GenericArgument, Ident, LitStr, PathArguments, Type, TypePath};
 
 mod misc;
 mod tags;
 
+#[proc_macro_derive(SelectionState, attributes(selection_state))]
+pub fn derive_selection_state(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    let input = parse_macro_input!(input as DeriveInput);
+    let struct_name = input.ident;
+    let fields = match input.data {
+        Data::Struct(d) => d.fields,
+        _ => return syn::Error::new(struct_name.span(), "Not a Struct").to_compile_error().into()
+    };
+
+    let fields = fields.into_iter().filter(|f| {
+        f.attrs.iter().any(|attr| {
+            attr.path().is_ident("selection_state")
+        })
+    }).collect::<Vec<Field>>();
+        
+    if fields.is_empty() {
+        return syn::Error::new(
+            struct_name.span(),
+            "No field marked as selection_state"
+        ).to_compile_error().into()
+    }
+
+    let match_iter = fields.iter().map(|f| {
+        let name = f.ident.as_ref().unwrap();
+        let s = LitStr::new(&name.to_string(), name.span());
+        let err = syn::Error::new(f.ty.span(), "Needs to be a Vec<*Selection*>");
+        let path = match &f.ty {
+            Type::Path(TypePath { path, .. }) => Ok(path),
+            _ => Err(err.clone()),
+        }?;
+
+        let segment = match path.segments.last() {
+                    Some(segment) => Ok(segment),
+                    None => Err(err.clone()),
+        }?;
+
+        if segment.ident != "Vec" {
+            return Err(err);
+        }
+
+        let inner_type = if let PathArguments::AngleBracketed(args) = &segment.arguments {
+            if let Some(GenericArgument::Type(inner_type)) = args.args.first() {
+                inner_type
+            } else { return Err(err.clone()) }
+        } else { return Err(err) };
+
+
+        Ok(quote! { #s => self.#name = values.into_iter().map(|v| #inner_type::from_str(&v)).collect::<crate::aliases::TypedResult<Vec<#inner_type>>>()?, })
+    }).collect::<Result<TokenStream, syn::Error>>();
+
+    let match_iter = match match_iter {
+        Ok(i) => i,
+        Err(e) => return e.into_compile_error().into(),
+    };
+
+
+
+    let code = quote! { 
+        impl #struct_name {
+            pub fn set_selection_state(&mut self, interaction: &::serenity::all::ComponentInteraction) -> crate::aliases::Result {
+                if let ::serenity::all::ComponentInteractionDataKind::StringSelect { ref values } = interaction.data.kind {
+                    match interaction.data.custom_id.as_str() {
+                        #match_iter
+                        _ => return Err(crate::error::BotError::Serenity(::serenity::Error::Other("Unknown custom_id!")))
+                    }
+                }
+                Ok(())
+            }
+        }
+    };
+
+    code.into()
+
+
+}
+
+#[proc_macro_derive(Selection, attributes(select_value))]
+pub fn derive_selection(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    let input = parse_macro_input!(input as DeriveInput);
+    let enum_name = input.ident;
+    let variants = match input.data {
+        Data::Enum(d) => d.variants,
+        _ => return syn::Error::new(enum_name.span(), "Not an Enum").to_compile_error().into(),
+    };
+
+    if variants.is_empty() {
+        return syn::Error::new(enum_name.span(), "Must have at least one variant").to_compile_error().into()
+    }
+
+    if variants.len() > 25 {
+        return syn::Error::new(enum_name.span(), "Must have at most 25 variants").to_compile_error().into()
+    }
+
+    let builders = variants.iter()
+        .map(|v| {
+        let ident = v.ident.to_string();
+        let mut label = ident.to_string();
+
+        for attr in &v.attrs {
+            if !attr.path().is_ident("select_value") {
+                continue;
+            }
+
+            let arg = match attr.parse_args::<LitStr>() {
+                Ok(v) => v,
+                Err(e) => return e.to_compile_error(),
+            };
+
+            label = arg.value();
+        }
+
+        quote! { ::serenity::all::CreateSelectMenuOption::new(
+            #label,
+            #ident
+        ) }
+    });
+
+    let from_match = variants.iter().map(|v| {
+        let ident = &v.ident;
+        let string = v.ident.to_string();
+        quote! { #string => Ok(#enum_name::#ident) }
+    });
+
+    let code = quote! {
+        impl #enum_name {
+            pub fn select_options() -> Vec<::serenity::all::CreateSelectMenuOption> {
+                ::std::vec![#(#builders),*]
+            }
+
+            pub fn from_str(s: &::std::primitive::str) -> crate::aliases::TypedResult<Self> {
+                match s {
+                    #(#from_match,)*
+                    _ => Err(crate::error::BotError::Serenity(::serenity::Error::Other("Unknown custom_id!")))
+                }
+            }
+        }
+    };
+
+    code.into()
+}
 
 #[proc_macro]
 pub fn command(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
@@ -25,6 +165,15 @@ pub fn interactive_msg(input: proc_macro::TokenStream) -> proc_macro::TokenStrea
 
     let rows = struct_tag.rows;
     let name = struct_tag.struct_name;
+
+    let state_ident = match &struct_tag.state_ident {
+        Some(i) => quote! { #i },
+        None => quote! { () }
+    };
+
+    if rows.iter().any(|row| { match row.component { RowComponent::SelectMenu(_) => true, _ => false } })  && struct_tag.state_ident.is_none() {
+        return syn::Error::new(name.span(), "Message has Selection but doesn't have a State").into_compile_error().into();
+    }
 
 
     let embeds = struct_tag.embeds;
@@ -43,13 +192,9 @@ pub fn interactive_msg(input: proc_macro::TokenStream) -> proc_macro::TokenStrea
                 quote! { async fn #ident(ctx: &mut crate::components::EventCtx) -> crate::aliases::Result { crate::log_warn!("Unhandled Interaction: {}", #id); Ok(()) } }
             }
             RowComponent::SelectMenu(s) => {
-                let options = s.options.iter().map(|option| {
-                    let id = option.id.value();
-                    let ident = Ident::new(&format!("handle_{}", id), Span::call_site());
-                    quote! { async fn #ident(ctx: &mut crate::components::EventCtx) -> crate::aliases::Result { crate::log_warn!("Unhandled Interaction: {}", #id); Ok(()) } }
-                });
-
-                quote! { #(#options)* }
+                let id = s.id.value();
+                let ident = Ident::new(&format!("handle_{}", id), Span::call_site());
+                quote! { async fn #ident(ctx: &mut crate::components::EventCtx) -> crate::aliases::Result { ctx.acknowlage().await } }
             }
             RowComponent::Buttons(b) => {
                 let buttons = b.iter().map(|button| {
@@ -82,20 +227,8 @@ pub fn interactive_msg(input: proc_macro::TokenStream) -> proc_macro::TokenStrea
             }
             RowComponent::SelectMenu(s) => {
                 let id = s.id.value();
-                let options = s.options.iter().map(|option| {
-                    let id = option.id.value();
-                    let ident = Ident::new(&format!("handle_{}", id), Span::call_site());
-                    quote! { #id => Handler::#ident(ctx).await?, }
-                });
-
-                quote! { #id => {
-                    if let ::serenity::all::ComponentInteractionDataKind::StringSelect { ref values } = ctx.interaction.data.kind {
-                        match values[0].as_str() {
-                            #(#options)*
-                            _ => crate::log_error!("Unknown custom_id: {} for interaction: ", ctx.interaction.data.custom_id)
-                        }
-                    }
-                } }
+                let ident = Ident::new(&format!("handle_{}", id), Span::call_site());
+                quote! { #id => { let mut state = ctx.msg.clone_state::<Self::State>().await.unwrap(); state.set_selection_state(&ctx.interaction)?; ctx.msg.write_state::<Self::State>(state).await; Handler::#ident(ctx).await? } }
             }
         }
     });
@@ -125,11 +258,12 @@ pub fn interactive_msg(input: proc_macro::TokenStream) -> proc_macro::TokenStrea
 
         #[::serenity::async_trait]
         impl<Handler: #merged_handler_trait_ident> crate::traits::InteractiveMessageTrait for #name<Handler> {
+            type State = #state_ident;
             fn into_msg() -> ::serenity::all::CreateInteractionResponseMessage {
                 ::serenity::all::CreateInteractionResponseMessage::new().components(vec![#(#rows),*]).ephemeral(#ephemeral) #content
             }
 
-            async fn with_embeds_command(ctx: &crate::components::CommandCtx, state: ::std::option::Option<&crate::components::State>) -> ::std::vec::Vec<::serenity::all::CreateEmbed> {
+            async fn with_embeds_command(ctx: &crate::components::CommandCtx, state: &crate::components::State) -> ::std::vec::Vec<::serenity::all::CreateEmbed> {
                 use crate::traits::into_embed::IntoEmbedInteractive;
                 ::std::vec![#(#embeds_comm::from_command(ctx, state).await)*]
             }
@@ -140,7 +274,6 @@ pub fn interactive_msg(input: proc_macro::TokenStream) -> proc_macro::TokenStrea
             }
 
             async fn handle_event(ctx: &mut crate::components::EventCtx) -> crate::aliases::Result {
-                //crate::log!("Running {}", stringify!(#name));
                 match ctx.interaction.data.custom_id.as_str() {
                     #(#handle_func)*
                     _ => crate::log_error!("Unknown custom_id: {} for interaction: ", ctx.interaction.data.custom_id)

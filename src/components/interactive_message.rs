@@ -14,7 +14,7 @@ use crate::traits::InteractiveMessageTrait;
 
 pub struct InteractiveMessage {
     msg: Message,
-    state: Option<State>,
+    state: State,
 
     //i hate this
     stop: bool,
@@ -29,22 +29,7 @@ pub struct InteractiveMessage {
 }
 
 impl InteractiveMessage {
-    pub async fn new_with_state<
-        T: InteractiveMessageTrait + 'static,
-        S: StateTrait + Send + Sync + 'static,
-    >(
-        ctx: &CommandCtx<'_>,
-    ) -> TypedResult<Self> {
-        Self::_new::<T>(ctx, Some(State::init::<S>(ctx).await?)).await
-    }
-
-    pub async fn new<T: InteractiveMessageTrait + 'static>(
-        ctx: &CommandCtx<'_>,
-    ) -> TypedResult<Self> {
-        Self::_new::<T>(ctx, None).await
-    }
-
-    pub async fn from_event_with_state<
+    pub async fn from_event<
         T: InteractiveMessageTrait + 'static,
         S: StateTrait + Send + Sync + 'static,
     >(
@@ -62,18 +47,18 @@ impl InteractiveMessage {
 
         Ok(Self {
             msg: m,
-            state: Some(state),
+            state: state,
             has_handler_mutated: false,
             handler: Box::new(|c| Box::pin(T::handle_event(c))),
             stop: false,
         })
     }
 
-    async fn _new<T: InteractiveMessageTrait + 'static>(
+    pub async fn new<T: InteractiveMessageTrait<State: StateTrait + Send + Sync> + 'static>(
         ctx: &CommandCtx<'_>,
-        state: Option<State>,
     ) -> TypedResult<Self> {
-        let msg = T::into_msg().embeds(T::with_embeds_command(ctx, state.as_ref()).await);
+        let state = State::init::<T::State>(ctx).await?;
+        let msg = T::into_msg().embeds(T::with_embeds_command(ctx, &state).await);
 
         let builder = CreateInteractionResponse::Message(msg);
         ctx.interaction.create_response(ctx, builder).await?;
@@ -174,19 +159,13 @@ impl InteractiveMessage {
     }
 
     pub async fn clone_state<S: StateTrait + Send + Sync + 'static>(&self) -> Option<S> {
-        match &self.state {
-            None => None,
-            Some(s) => s.clone::<S>().await,
-        }
+        self.state.clone::<S>().await
     }
 
     pub async fn write_state<S: StateTrait + Send + Sync + 'static>(
         &self,
         new_state: S,
     ) -> Option<()> {
-        match &self.state {
-            None => None,
-            Some(s) => s.write(new_state).await,
-        }
+        self.state.write(new_state).await
     }
 }

@@ -1,9 +1,8 @@
-use crate::misc::AttrValue;
 use crate::tags::*;
 
 use proc_macro2::{Span, TokenStream};
 use quote::{quote, ToTokens};
-use syn::{parse::Parse, Ident, Lit, LitStr};
+use syn::{parse::Parse, Ident, LitBool, LitInt, LitStr};
 
 macro_rules! optional_attr {
     ($self:ident, $attr_name:ident, $($tokens:tt)*) => {
@@ -19,11 +18,11 @@ pub struct InputTag {
     pub inner: LitStr,
 
     pub style: Ident,
-    pub placeholder: Option<AttrValue>,
-    pub min_len: Option<AttrValue>,
-    pub max_len: Option<AttrValue>,
-    pub value: Option<AttrValue>,
-    pub required: Option<AttrValue>,
+    pub placeholder: Option<LitStr>,
+    pub min_len: Option<LitInt>,
+    pub max_len: Option<LitInt>,
+    pub value: Option<LitStr>,
+    pub required: Option<LitBool>,
 }
 
 impl Parse for InputTag {
@@ -45,34 +44,24 @@ impl Parse for InputTag {
         }
 
         let style = {
-            match tag.required_attr("style")? {
-                AttrValue::Ident(i) => i,
-                AttrValue::Lit(l) => match l {
-                    Lit::Str(s) => match s.value().as_str() {
-                        "short" => Ident::new("Short", Span::call_site()),
-                        "paragraph" => Ident::new("Paragraph", Span::call_site()),
-                        _ => {
-                            return Err(syn::Error::new(
-                                s.span(),
-                                "style can be only (short, paragraph)",
-                            ))
-                        }
-                    },
-                    _ => {
-                        return Err(syn::Error::new(
-                            l.span(),
-                            "style can be only (short, paragraph)",
-                        ))
-                    }
-                },
+            let attr = tag.required_attr::<LitStr>("style")?;
+            match attr.value().as_str() {
+                "short" => Ident::new("Short", Span::call_site()),
+                "paragraph" => Ident::new("Paragraph", Span::call_site()),
+                _ => {
+                    return Err(syn::Error::new(
+                        attr.span(),
+                        "style can be only (short, paragraph)",
+                    ))
+                }
             }
         };
 
-        let placeholder = tag.attr("placeholder");
-        let min_len = tag.attr("min_len");
-        let max_len = tag.attr("max_len");
-        let value = tag.attr("value");
-        let required = tag.attr("required");
+        let placeholder = tag.attr::<LitStr>("placeholder")?;
+        let min_len = tag.attr::<LitInt>("min_len")?;
+        let max_len = tag.attr::<LitInt>("max_len")?;
+        let value = tag.attr::<LitStr>("value")?;
+        let required = tag.attr::<LitBool>("required")?;
 
         return Ok(Self {
             id,

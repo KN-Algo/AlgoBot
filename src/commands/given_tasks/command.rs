@@ -48,7 +48,7 @@ impl StateTrait for State {
 }
 
 interactive_msg! {
-    <GivenTasksMsg handler=Handler ephemeral=true>
+    <GivenTasksMsg handler=Handler state=State ephemeral=true>
         <embed>Embed</embed>
         <row>
             <button id="prev">"<"</button>
@@ -157,8 +157,7 @@ impl HandlerTrait for Handler {
 #[async_trait]
 impl BotCommand for GivenTasksCommand {
     async fn run(&self, ctx: &CommandCtx) -> Result {
-        let mut msg =
-            InteractiveMessage::new_with_state::<GivenTasksMsg<Handler>, State>(ctx).await?;
+        let mut msg = InteractiveMessage::new::<GivenTasksMsg<Handler>>(ctx).await?;
         msg.handle_events(ctx).await
     }
 

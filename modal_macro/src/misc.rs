@@ -30,6 +30,58 @@ impl ToTokens for AttrValue {
     }
 }
 
+impl TryFrom<AttrValue> for syn::Ident {
+    type Error = syn::Error;
+    fn try_from(value: AttrValue) -> Result<Self, Self::Error> {
+        match value {
+            AttrValue::Ident(i) => Ok(i),
+            AttrValue::Lit(l) => Err(syn::Error::new(l.span(), "Must be an ident")),
+        }
+    }
+}
+
+impl TryFrom<AttrValue> for syn::LitStr {
+    type Error = syn::Error;
+    fn try_from(value: AttrValue) -> Result<Self, Self::Error> {
+        let err = Err(syn::Error::new(value.span(), "Must be a string"));
+        match value {
+            AttrValue::Ident(_) => err,
+            AttrValue::Lit(l) => match l {
+                Lit::Str(s) => Ok(s),
+                _ => err,
+            },
+        }
+    }
+}
+
+impl TryFrom<AttrValue> for syn::LitInt {
+    type Error = syn::Error;
+    fn try_from(value: AttrValue) -> Result<Self, Self::Error> {
+        let err = Err(syn::Error::new(value.span(), "Must be an integer"));
+        match value {
+            AttrValue::Ident(_) => err,
+            AttrValue::Lit(l) => match l {
+                Lit::Int(s) => Ok(s),
+                _ => err,
+            },
+        }
+    }
+}
+
+impl TryFrom<AttrValue> for syn::LitBool {
+    type Error = syn::Error;
+    fn try_from(value: AttrValue) -> Result<Self, Self::Error> {
+        let err = Err(syn::Error::new(value.span(), "Must be a boolean"));
+        match value {
+            AttrValue::Ident(_) => err,
+            AttrValue::Lit(l) => match l {
+                Lit::Bool(s) => Ok(s),
+                _ => err,
+            },
+        }
+    }
+}
+
 pub struct Attribute {
     pub name: Ident,
     pub value: AttrValue,

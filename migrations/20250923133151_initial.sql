@@ -36,6 +36,7 @@ CREATE TABLE event_reminders (
     id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL,
     way INTEGER NOT NULL,
+    reminder_group INTEGER NOT NULL,
     email TEXT,
     FOREIGN KEY (user_id) REFERENCES users(discord_id) ON DELETE CASCADE
 );

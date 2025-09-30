@@ -1,7 +1,6 @@
 use quote::{quote, ToTokens};
 use syn::{parse::Parse, Ident, LitBool, LitInt, LitStr, Token};
 
-use crate::misc::AttrValue;
 use crate::tags::*;
 
 macro_rules! optional_attr {
@@ -25,16 +24,7 @@ pub struct CommandOptionTag {
 impl Parse for CommandOptionTag {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
         let mut tag = input.parse::<Tag>()?;
-        let required = match tag.attr("required") {
-            None => None,
-            Some(attr) => match attr {
-                AttrValue::Ident(i) => return Err(syn::Error::new(i.span(), "Should be a bool")),
-                AttrValue::Lit(l) => match l {
-                    syn::Lit::Bool(b) => Some(b),
-                    _ => return Err(syn::Error::new(l.span(), "Should be a bool")),
-                },
-            },
-        };
+        let required = tag.attr("required")?;
 
         let mut name: Option<LitStr> = None;
         let mut desc: Option<LitStr> = None;
@@ -65,27 +55,8 @@ impl Parse for CommandOptionTag {
 
         let closing = input.parse::<ClosingTag>()?;
 
-        let min_len = match tag.attr("min_len") {
-            Some(v) => match v {
-                AttrValue::Lit(l) => match l {
-                    syn::Lit::Int(i) => Some(i),
-                    _ => return Err(syn::Error::new(l.span(), "Should be an int")),
-                },
-                AttrValue::Ident(i) => return Err(syn::Error::new(i.span(), "Should be an int")),
-            },
-            None => None,
-        };
-
-        let max_len = match tag.attr("max_len") {
-            Some(v) => match v {
-                AttrValue::Lit(l) => match l {
-                    syn::Lit::Int(i) => Some(i),
-                    _ => return Err(syn::Error::new(l.span(), "Should be an int")),
-                },
-                AttrValue::Ident(i) => return Err(syn::Error::new(i.span(), "Should be an int")),
-            },
-            None => None,
-        };
+        let min_len = tag.attr("min_len")?;
+        let max_len = tag.attr("max_len")?;
 
         if tag.name != closing.name {
             return Err(syn::Error::new(closing.name.span(), "unclosed tag"));

@@ -1,4 +1,3 @@
-use crate::misc::AttrValue;
 use crate::tags::*;
 
 use proc_macro2::Span;
@@ -10,6 +9,7 @@ pub struct InteractiveTag {
     pub rows: Vec<RowTag>,
     pub embeds: Vec<EmbedTag>,
     pub handler_name: Ident,
+    pub state_ident: Option<Ident>,
     pub ephemeral: LitBool,
     pub text: Option<TextTag>,
 }
@@ -51,19 +51,11 @@ impl Parse for InteractiveTag {
             return Err(syn::Error::new(closing.name.span(), "unclosed tag"));
         }
 
-        let handler_name = match tag.required_attr("handler")? {
-            AttrValue::Lit(l) => return Err(syn::Error::new(l.span(), "Should be an Ident")),
-            AttrValue::Ident(i) => i,
-        };
+        let handler_name = tag.required_attr::<Ident>("handler")?;
+        let state_ident = tag.attr::<Ident>("state")?;
 
-        let ephemeral = match tag.attr("ephemeral") {
-            Some(v) => match v {
-                AttrValue::Lit(l) => match l {
-                    syn::Lit::Bool(b) => b,
-                    _ => return Err(syn::Error::new(l.span(), "Should be a bool")),
-                },
-                AttrValue::Ident(i) => return Err(syn::Error::new(i.span(), "Should be a bool")),
-            },
+        let ephemeral = match tag.attr::<LitBool>("ephemeral")? {
+            Some(v) => v,
             None => LitBool::new(false, Span::call_site()),
         };
 
@@ -74,6 +66,7 @@ impl Parse for InteractiveTag {
             embeds,
             ephemeral,
             text,
+            state_ident,
         })
     }
 }

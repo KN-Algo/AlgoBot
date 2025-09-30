@@ -1,85 +1,88 @@
-use modal_macro::interactive_msg;
-use serenity::{
-    all::{CreateCommand, CreateEmbed},
-    async_trait,
-};
+use modal_macro::{interactive_msg, SelectionState};
+use serenity::{all::CreateCommand, async_trait};
 
 use crate::{
     aliases::{Result, TypedResult},
-    commands::misc,
+    commands::{misc, remind_events::embed::Embed},
     components::{CommandCtx, EventCtx, InteractiveMessage},
-    database::ReminderWay,
-    traits::{into_embed::IntoEmbedInteractive, BotCommand, Interactable, StateTrait},
+    database::{EventReminder, ReminderGroup, ReminderWay},
+    traits::{BotCommand, Interactable, StateTrait},
 };
 
 pub struct RemindEventsCommand;
 
 #[derive(Clone)]
-struct State {
-    way: ReminderWay,
-    email: Option<String>,
+pub struct State {
+    pub reminders: Vec<EventReminder>,
+    pub page: u8,
+    pub max_page: usize,
 }
 
 #[async_trait]
 impl StateTrait for State {
     async fn init(ctx: &CommandCtx) -> TypedResult<Self> {
-        let (way, email) = match ctx
+        let reminders = ctx
             .db
-            .get_user_event_reminder(ctx.interaction.user.id)
-            .await?
-        {
-            Some(r) => (r.way, r.email),
-            None => (ReminderWay::DiscordPing, None),
-        };
-        Ok(Self { way, email })
+            .get_user_event_reminders(ctx.interaction.user.id)
+            .await?;
+
+        Ok(Self {
+            reminders,
+            page: 0,
+            max_page: 2,
+        })
     }
 }
 
-struct Embed;
+#[derive(Clone, SelectionState)]
+struct SelectState {
+    #[selection_state]
+    pub selection: Vec<ReminderWay>,
+    pub group: ReminderGroup,
+}
 
 #[async_trait]
-impl IntoEmbedInteractive for Embed {
-    async fn from_command(
-        _ctx: &CommandCtx,
-        state: Option<&crate::components::State>,
-    ) -> CreateEmbed {
-        let state = state.unwrap().clone::<State>().await.unwrap();
-        let str = match state.way {
-            ReminderWay::DiscordPing => "Discord Ping",
-            ReminderWay::DirectMsg => "Direct Message",
-            ReminderWay::Email => &format!("Email: {}", state.email.unwrap()),
-        };
-
-        CreateEmbed::new()
-            .color(serenity::model::Colour::MEIBE_PINK)
-            .field("You will be reminded via:", str, false)
-    }
-    async fn from_event(_ctx: &EventCtx) -> CreateEmbed {
-        CreateEmbed::new()
+impl StateTrait for SelectState {
+    async fn init(_ctx: &CommandCtx) -> TypedResult<Self> {
+        Ok(Self {
+            selection: vec![],
+            group: ReminderGroup::Events,
+        })
     }
 }
 
 interactive_msg! {
-    <RemindEventsMsg handler=Handler ephemeral=true>
-        <text>"Select reminder type:"</text>
-        <row>
-            <selection id="selection">
-                <option id="ping" default=true>"Discord Ping"</option>
-                <option id="dm">"Direct Message"</option>
-                <option id="email">"Email"</option>
-            </selection>
-        </row>
-        <row>
-            <button id="submit">"Ok"</button>
-        </row>
-    </RemindEventsMsg>
-}
-
-interactive_msg! {
-    <DeleteRemindMsg handler=DeleteHandler ephemeral=true>
+    <RemindersMsg handler=RemindersHandler>
         <embed>Embed</embed>
         <row>
-            <button id="delete">"Unsubscribe"</button>
+            <button id="prev">"<"</button>
+            <button id="next">">"</button>
+            <button id="add" style="secondary">"+"</button>
+            <button id="delete" style="danger">"<"</button>
+        </row>
+    </RemindersMsg>
+}
+
+interactive_msg! {
+    <AddRemindEventsMsg handler=AddHandler state=SelectState ephemeral=true>
+        <text>"Select reminder type:"</text>
+        <row>
+            <selection id="selection" options=ReminderWay max_values=2></selection>
+        </row>
+        <row>
+            <button id="submit">"Add"</button>
+        </row>
+    </AddRemindEventsMsg>
+}
+
+interactive_msg! {
+    <DeleteRemindMsg handler=DeleteHandler state=SelectState ephemeral=true>
+        <text>"Select reminder type:"</text>
+        <row>
+            <selection id="selection" options=ReminderWay></selection>
+        </row>
+        <row>
+            <button id="delete">"Delete"</button>
         </row>
     </DeleteRemindMsg>
 }
@@ -101,9 +104,13 @@ modal_macro::modal! {
 #[async_trait]
 impl DeleteHandlerTrait for DeleteHandler {
     async fn handle_delete(ctx: &mut EventCtx) -> Result {
-        ctx.db
-            .delete_event_reminder(ctx.interaction.user.id)
-            .await?;
+        let state = ctx.msg.clone_state::<SelectState>().await.unwrap();
+        /*
+                ctx.db
+                    .delete_event_reminder(ctx.interaction.user.id, state.group, state.way)
+                    .await?;
+        */
+        ctx.msg.stop();
         ctx.update_msg::<EmptyMsg<EmptyHandler>>().await
     }
 }
@@ -111,36 +118,23 @@ impl DeleteHandlerTrait for DeleteHandler {
 impl EmptyHandlerTrait for EmptyHandler {}
 
 #[async_trait]
-impl HandlerTrait for Handler {
-    async fn handle_ping(ctx: &mut EventCtx) -> Result {
-        let mut state = ctx.msg.clone_state::<State>().await.unwrap();
-        state.way = ReminderWay::DiscordPing;
-        ctx.msg.write_state(state).await;
-        ctx.acknowlage().await
-    }
-
-    async fn handle_dm(ctx: &mut EventCtx) -> Result {
-        let mut state = ctx.msg.clone_state::<State>().await.unwrap();
-        state.way = ReminderWay::DirectMsg;
-        ctx.msg.write_state(state).await;
-        ctx.acknowlage().await
-    }
-    async fn handle_email(ctx: &mut EventCtx) -> Result {
-        let mut state = ctx.msg.clone_state::<State>().await.unwrap();
-        state.way = ReminderWay::Email;
-        ctx.msg.write_state(state).await;
-        ctx.acknowlage().await
-    }
+impl AddHandlerTrait for AddHandler {
     async fn handle_submit(ctx: &mut EventCtx) -> Result {
-        let state = ctx.msg.clone_state::<State>().await.unwrap();
-
+        let state = ctx.msg.clone_state::<SelectState>().await.unwrap();
+        crate::log!("{:?}", state.selection);
+        /*
         match state.way {
             ReminderWay::Email => {
                 let result = ctx.modal::<EmailModal>().await?;
                 if misc::verify_email(&result.email) {
                     result.respond("Done!", true).await?;
                     ctx.db
-                        .add_event_reminder(ctx.interaction.user.id, state.way, Some(result.email))
+                        .add_event_reminder(
+                            ctx.interaction.user.id,
+                            state.way,
+                            state.group,
+                            Some(result.email),
+                        )
                         .await?;
                 } else {
                     result.respond("Invalid Email!", true).await?;
@@ -148,11 +142,11 @@ impl HandlerTrait for Handler {
             }
             _ => {
                 ctx.db
-                    .add_event_reminder(ctx.interaction.user.id, state.way, None)
+                    .add_event_reminder(ctx.interaction.user.id, state.way, state.group, None)
                     .await?;
                 ctx.update_msg::<EmptyMsg<EmptyHandler>>().await?;
             }
-        };
+        };*/
         ctx.msg.stop();
         Ok(())
     }
@@ -161,19 +155,7 @@ impl HandlerTrait for Handler {
 #[async_trait]
 impl BotCommand for RemindEventsCommand {
     async fn run(&self, ctx: &CommandCtx) -> Result {
-        let mut msg = match ctx
-            .db
-            .get_user_event_reminder(ctx.interaction.user.id)
-            .await?
-        {
-            None => {
-                InteractiveMessage::new_with_state::<RemindEventsMsg<Handler>, State>(ctx).await?
-            }
-            Some(_) => {
-                InteractiveMessage::new_with_state::<DeleteRemindMsg<DeleteHandler>, State>(ctx)
-                    .await?
-            }
-        };
+        let mut msg = InteractiveMessage::new::<AddRemindEventsMsg<AddHandler>>(ctx).await?;
         msg.handle_events(ctx).await
     }
 

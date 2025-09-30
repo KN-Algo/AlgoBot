@@ -1,9 +1,8 @@
-use crate::misc::AttrValue;
 use crate::tags::*;
 
 use proc_macro2::{Span, TokenStream};
 use quote::{quote, ToTokens};
-use syn::{parse::Parse, Ident, Lit, LitStr};
+use syn::{parse::Parse, Ident, LitBool, LitStr};
 
 macro_rules! optional_attr {
     ($self:ident, $attr_name:ident, $($tokens:tt)*) => {
@@ -18,9 +17,9 @@ pub struct ButtonTag {
     pub id: LitStr,
     pub inner: LitStr,
 
-    pub link: Option<AttrValue>,
+    pub link: Option<LitStr>,
     pub style: Option<Ident>,
-    pub disabled: Option<AttrValue>,
+    pub disabled: Option<LitBool>,
 }
 
 impl Parse for ButtonTag {
@@ -41,32 +40,21 @@ impl Parse for ButtonTag {
             return Err(syn::Error::new(closing.name.span(), "unclosed tag"));
         }
 
-        let link = tag.attr("link");
-        let disabled = tag.attr("disabled");
-        let s = tag.attr("style");
+        let link = tag.attr::<LitStr>("link")?;
+        let disabled = tag.attr::<LitBool>("disabled")?;
+        let s = tag.attr::<LitStr>("style")?;
         let style = if let Some(attr) = s {
-            match attr {
-                AttrValue::Ident(i) => Some(i),
-                AttrValue::Lit(l) => match l {
-                    Lit::Str(s) => match s.value().as_str() {
-                        "primary" => Some(Ident::new("Primary", Span::call_site())),
-                        "secondary" => Some(Ident::new("Secondary", Span::call_site())),
-                        "success" => Some(Ident::new("Success", Span::call_site())),
-                        "danger" => Some(Ident::new("Danger", Span::call_site())),
-                        _ => {
-                            return Err(syn::Error::new(
-                                s.span(),
-                                "style can be only (primary, secondary, success, danger)",
-                            ))
-                        }
-                    },
-                    _ => {
-                        return Err(syn::Error::new(
-                            l.span(),
-                            "style can be only (primary, secondary, success, danger)",
-                        ))
-                    }
-                },
+            match attr.value().as_str() {
+                "primary" => Some(Ident::new("Primary", Span::call_site())),
+                "secondary" => Some(Ident::new("Secondary", Span::call_site())),
+                "success" => Some(Ident::new("Success", Span::call_site())),
+                "danger" => Some(Ident::new("Danger", Span::call_site())),
+                _ => {
+                    return Err(syn::Error::new(
+                        attr.span(),
+                        "style can be only (primary, secondary, success, danger)",
+                    ))
+                }
             }
         } else {
             None

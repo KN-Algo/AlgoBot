@@ -1,8 +1,9 @@
-use crate::misc::AttrValue;
 use crate::misc::RowComponent;
 use crate::tags::*;
 
 use proc_macro2::Span;
+use syn::LitInt;
+use syn::LitStr;
 use syn::{parse::Parse, Ident, Token};
 
 pub struct ModalField {
@@ -11,8 +12,8 @@ pub struct ModalField {
 
 pub struct ModalTag {
     pub struct_name: Ident,
-    pub title: AttrValue,
-    pub duration: AttrValue,
+    pub title: LitStr,
+    pub duration: LitInt,
     pub rows: Vec<ModalRowTag>,
 }
 
@@ -36,8 +37,8 @@ impl Parse for ModalTag {
         input.parse::<Token![<]>()?;
         let mut tag = input.parse::<Tag>()?;
 
-        let title = tag.required_attr("title")?;
-        let duration = tag.required_attr("duration")?;
+        let title = tag.required_attr::<LitStr>("title")?;
+        let duration = tag.required_attr::<LitInt>("duration")?;
 
         let mut rows = vec![];
         while input.peek(Token![<]) && !input.peek2(Token![/]) {

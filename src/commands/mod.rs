@@ -1,6 +1,3 @@
-pub mod embed_test;
-pub mod interactive_test;
-pub mod modal_test;
 pub mod ping;
 
 pub mod add_custom_event;
@@ -12,7 +9,4 @@ pub mod remind_events;
 
 pub mod misc;
 
-pub use embed_test::EmbedTest;
-pub use interactive_test::InterTest;
-pub use modal_test::ModalTest;
 pub use ping::Ping;

@@ -1,4 +1,4 @@
-use modal_macro::interactive_msg;
+use modal_macro::{interactive_msg, Selection, SelectionState};
 use serenity::{all::CreateCommand, async_trait};
 
 use crate::{
@@ -8,6 +8,25 @@ use crate::{
     database::Task,
     traits::{BotCommand, Interactable, StateTrait},
 };
+
+#[derive(Selection, Clone, Debug)]
+enum ReminderWhen {
+    OneDay,
+    TwoDays,
+    ThreeDays,
+    FiveDays,
+}
+
+impl From<&ReminderWhen> for chrono::Duration {
+    fn from(value: &ReminderWhen) -> Self {
+        match value {
+            ReminderWhen::OneDay => chrono::Duration::days(1),
+            ReminderWhen::TwoDays => chrono::Duration::days(2),
+            ReminderWhen::ThreeDays => chrono::Duration::days(3),
+            ReminderWhen::FiveDays => chrono::Duration::days(5),
+        }
+    }
+}
 
 #[derive(Clone)]
 pub struct State {
@@ -29,10 +48,11 @@ impl StateTrait for State {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, SelectionState)]
 struct ReminderState {
     pub task_id: i64,
-    pub when: chrono::Duration,
+    #[selection_state]
+    pub when_selection: Vec<ReminderWhen>,
 }
 
 #[async_trait]
@@ -40,7 +60,7 @@ impl StateTrait for ReminderState {
     async fn init(_ctx: &CommandCtx) -> TypedResult<Self> {
         Ok(Self {
             task_id: 0,
-            when: chrono::Duration::days(1),
+            when_selection: vec![],
         })
     }
 }
@@ -48,7 +68,7 @@ impl StateTrait for ReminderState {
 pub struct MyTasksCommand;
 
 interactive_msg! {
-    <MyTasksMsg handler=Handler ephemeral=true>
+    <MyTasksMsg handler=Handler state=State ephemeral=true>
         <embed>Embed</embed>
         <row>
             <button id="prev">"<"</button>
@@ -60,14 +80,9 @@ interactive_msg! {
 }
 
 interactive_msg! {
-    <AddReminderMsg handler=ReminderHandler ephemeral=true>
+    <AddReminderMsg handler=ReminderHandler state=ReminderState ephemeral=true>
         <row>
-            <selection id="reminder_when">
-                <option id="1d" default=true>"1 Day Before"</option>
-                <option id="2d">"2 Days Before"</option>
-                <option id="3d">"3 Days Before"</option>
-                <option id="5d">"5 Days Before"</option>
-            </selection>
+            <selection id="when_selection" options=ReminderWhen max_values=4></selection>
         </row>
         <row>
             <button id="submit">"Ok"</button>
@@ -85,39 +100,20 @@ impl EmptyHanderTrait for EmptyHander {}
 
 #[async_trait]
 impl ReminderHandlerTrait for ReminderHandler {
-    async fn handle_1d(ctx: &mut EventCtx) -> Result {
-        let mut state = ctx.msg.clone_state::<ReminderState>().await.unwrap();
-        state.when = chrono::Duration::days(1);
-        ctx.msg.write_state::<ReminderState>(state).await;
-        ctx.acknowlage().await
-    }
-
-    async fn handle_2d(ctx: &mut EventCtx) -> Result {
-        let mut state = ctx.msg.clone_state::<ReminderState>().await.unwrap();
-        state.when = chrono::Duration::days(2);
-        ctx.msg.write_state::<ReminderState>(state).await;
-        ctx.acknowlage().await
-    }
-
-    async fn handle_3d(ctx: &mut EventCtx) -> Result {
-        let mut state = ctx.msg.clone_state::<ReminderState>().await.unwrap();
-        state.when = chrono::Duration::days(3);
-        ctx.msg.write_state::<ReminderState>(state).await;
-        ctx.acknowlage().await
-    }
-
-    async fn handle_5d(ctx: &mut EventCtx) -> Result {
-        let mut state = ctx.msg.clone_state::<ReminderState>().await.unwrap();
-        state.when = chrono::Duration::days(5);
-        ctx.msg.write_state::<ReminderState>(state).await;
-        ctx.acknowlage().await
-    }
-
     async fn handle_submit(ctx: &mut EventCtx) -> Result {
         let state = ctx.msg.clone_state::<ReminderState>().await.unwrap();
         ctx.db
-            .add_reminder(state.task_id, ctx.interaction.user.id, state.when)
+            .add_reminder(
+                state.task_id,
+                ctx.interaction.user.id,
+                state
+                    .when_selection
+                    .iter()
+                    .map(|s| s.into())
+                    .collect::<Vec<chrono::Duration>>(),
+            )
             .await?;
+        crate::log!("{:?}", state.when_selection);
         ctx.update_msg::<EmptyMsg<EmptyHander>>().await?;
         ctx.msg.stop();
         Ok(())
@@ -173,17 +169,15 @@ impl HandlerTrait for Handler {
             Some(t) => t,
         };
 
-        let mut msg = InteractiveMessage::from_event_with_state::<
-            AddReminderMsg<ReminderHandler>,
-            ReminderState,
-        >(
-            ctx,
-            ReminderState {
-                task_id: task.id,
-                when: chrono::Duration::days(1),
-            },
-        )
-        .await?;
+        let mut msg =
+            InteractiveMessage::from_event::<AddReminderMsg<ReminderHandler>, ReminderState>(
+                ctx,
+                ReminderState {
+                    task_id: task.id,
+                    when_selection: vec![],
+                },
+            )
+            .await?;
         msg.handle_events_from_event(ctx).await
     }
 }
@@ -191,7 +185,7 @@ impl HandlerTrait for Handler {
 #[async_trait]
 impl BotCommand for MyTasksCommand {
     async fn run(&self, ctx: &CommandCtx) -> Result {
-        let mut msg = InteractiveMessage::new_with_state::<MyTasksMsg<Handler>, State>(ctx).await?;
+        let mut msg = InteractiveMessage::new::<MyTasksMsg<Handler>>(ctx).await?;
         msg.handle_events(ctx).await
     }
 

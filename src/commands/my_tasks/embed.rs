@@ -67,11 +67,8 @@ impl Embed {
 
 #[async_trait]
 impl IntoEmbedInteractive for Embed {
-    async fn from_command(
-        _ctx: &CommandCtx,
-        state: Option<&crate::components::State>,
-    ) -> CreateEmbed {
-        let state = state.unwrap().clone::<State>().await.unwrap();
+    async fn from_command(_ctx: &CommandCtx, state: &crate::components::State) -> CreateEmbed {
+        let state = state.clone::<State>().await.unwrap();
         Self::create(&state)
     }
 

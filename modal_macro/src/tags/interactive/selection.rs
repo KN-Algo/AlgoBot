@@ -1,9 +1,8 @@
-use crate::misc::AttrValue;
 use crate::tags::*;
 
 use proc_macro2::TokenStream;
 use quote::{quote, ToTokens};
-use syn::{parse::Parse, LitStr, Token};
+use syn::{parse::Parse, Ident, LitBool, LitInt, LitStr};
 
 macro_rules! optional_attr {
     ($self:ident, $attr_name:ident, $($tokens:tt)*) => {
@@ -16,12 +15,12 @@ macro_rules! optional_attr {
 
 pub struct SelectionTag {
     pub id: LitStr,
-    pub options: Vec<OptionTag>,
+    pub options_enum: Ident,
 
-    pub placeholder: Option<AttrValue>,
-    pub min_values: Option<AttrValue>,
-    pub max_values: Option<AttrValue>,
-    pub disabled: Option<AttrValue>,
+    pub placeholder: Option<LitStr>,
+    pub min_values: Option<LitInt>,
+    pub max_values: Option<LitInt>,
+    pub disabled: Option<LitBool>,
 }
 
 impl Parse for SelectionTag {
@@ -34,25 +33,6 @@ impl Parse for SelectionTag {
             ));
         }
         let id = tag.id()?;
-        let mut options = vec![];
-        while input.peek(Token![<]) && !input.peek2(Token![/]) {
-            input.parse::<Token![<]>()?;
-            options.push(input.parse::<OptionTag>()?);
-        }
-
-        if options.len() < 1 {
-            return Err(syn::Error::new(
-                tag.name.span(),
-                "select menus must have at least one option",
-            ));
-        }
-
-        if options.len() > 25 {
-            return Err(syn::Error::new(
-                tag.name.span(),
-                "select menus can have up to 25 options",
-            ));
-        }
 
         let closing = input.parse::<ClosingTag>()?;
 
@@ -60,14 +40,15 @@ impl Parse for SelectionTag {
             return Err(syn::Error::new(closing.name.span(), "unclosed tag"));
         }
 
-        let placeholder = tag.attr("placeholder");
-        let min_values = tag.attr("min_values");
-        let max_values = tag.attr("max_values");
-        let disabled = tag.attr("disabled");
+        let options_enum = tag.required_attr::<Ident>("options")?;
+        let placeholder = tag.attr::<LitStr>("placeholder")?;
+        let min_values = tag.attr::<LitInt>("min_values")?;
+        let max_values = tag.attr::<LitInt>("max_values")?;
+        let disabled = tag.attr::<LitBool>("disabled")?;
 
         return Ok(Self {
             id,
-            options,
+            options_enum,
             placeholder,
             min_values,
             max_values,
@@ -79,7 +60,7 @@ impl Parse for SelectionTag {
 impl ToTokens for SelectionTag {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         let id = &self.id;
-        let options = &self.options;
+        let options_enum = &self.options_enum;
 
         optional_attr!(self, placeholder, .placeholder(#placeholder));
         optional_attr!(self, min_values, .min_values(#min_values));
@@ -88,7 +69,7 @@ impl ToTokens for SelectionTag {
 
         tokens.extend(quote! {
             ::serenity::all::CreateSelectMenu::new(#id, ::serenity::all::CreateSelectMenuKind::String{
-                options: vec![#(#options),*]
+                options: #options_enum::select_options()
             }) #placeholder #min_values #max_values #disabled
         });
     }

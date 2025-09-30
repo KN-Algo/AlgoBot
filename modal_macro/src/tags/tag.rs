@@ -37,10 +37,13 @@ impl Tag {
         return Ok(id);
     }
 
-    pub fn required_attr(&mut self, attr_name: &str) -> syn::Result<AttrValue> {
+    pub fn required_attr<T: TryFrom<AttrValue, Error = syn::Error>>(
+        &mut self,
+        attr_name: &str,
+    ) -> syn::Result<T> {
         match self.attributes.remove(attr_name) {
             Some(attr) => {
-                return Ok(attr.value);
+                return Ok(attr.value.try_into()?);
             }
             None => {
                 return Err(syn::Error::new(
@@ -51,8 +54,16 @@ impl Tag {
         }
     }
 
-    pub fn attr(&mut self, attr_name: &str) -> Option<AttrValue> {
-        self.attributes.remove(attr_name).map(|a| a.value)
+    pub fn attr<T: TryFrom<AttrValue, Error = syn::Error>>(
+        &mut self,
+        attr_name: &str,
+    ) -> syn::Result<Option<T>> {
+        let a = match self.attributes.remove(attr_name) {
+            Some(a) => a,
+            None => return Ok(None),
+        };
+
+        a.value.try_into().map(|a| Some(a))
     }
 }
 
