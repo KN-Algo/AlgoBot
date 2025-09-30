@@ -26,8 +26,10 @@ CREATE TABLE task_targets (
 CREATE TABLE reminders (
     id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     task INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
     when_unixtimestamp INTEGER NOT NULL,
     FOREIGN KEY (task) REFERENCES tasks(id) ON DELETE CASCADE
+    FOREIGN KEY (user_id) REFERENCES users(discord_id) ON DELETE CASCADE
 );
 
 CREATE TABLE event_reminders (

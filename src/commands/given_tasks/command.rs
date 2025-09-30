@@ -120,7 +120,7 @@ impl HandlerTrait for Handler {
         }
 
         if !result.deadline.trim().is_empty() {
-            task.deadline = match misc::parse_date_dd_mm_yy(&result.deadline) {
+            task.deadline = match misc::parse_date_dd_mm_yy(&result.deadline, "%d-%m-%y") {
                 Ok(d) => d,
                 Err(e) => match e {
                     BotError::ChronoParse(_) => return result.respond("invalid date!", true).await,

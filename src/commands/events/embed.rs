@@ -1,4 +1,3 @@
-use crate::calendar::CalendarHub;
 use crate::calendar::Event;
 use crate::commands::events::command::State;
 use crate::components::CommandCtx;

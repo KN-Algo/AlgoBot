@@ -28,7 +28,7 @@ pub struct AddTaskCommand;
 impl BotCommand for AddTaskCommand {
     async fn run(&self, ctx: &CommandCtx) -> Result {
         let result = ctx.modal::<AddTaskModal>().await?;
-        let datetime = match misc::parse_date_dd_mm_yy(&result.deadline) {
+        let datetime = match misc::parse_date_dd_mm_yy(&result.deadline, "%d-%m-%y") {
             Ok(d) => d,
             Err(_) => return result.respond("Invalid date!", true).await,
         };

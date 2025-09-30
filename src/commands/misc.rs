@@ -2,8 +2,8 @@ use chrono::{DateTime, NaiveDate, TimeZone, Utc};
 
 use crate::aliases::TypedResult;
 
-pub fn parse_date_dd_mm_yy(date: &str) -> TypedResult<DateTime<Utc>> {
-    let naive = NaiveDate::parse_from_str(date, "%d-%m-%y")?;
+pub fn parse_date_dd_mm_yy(date: &str, format: &str) -> TypedResult<DateTime<Utc>> {
+    let naive = NaiveDate::parse_from_str(date, format)?;
     let naive_date = naive.and_hms_opt(0, 0, 0).unwrap();
     Ok(Utc.from_utc_datetime(&naive_date))
 }

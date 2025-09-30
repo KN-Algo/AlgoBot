@@ -80,7 +80,7 @@ impl Db {
             r.when_unixtimestamp as "when: Option<i64>"
         FROM tasks t
         JOIN task_targets tt ON t.id = tt.task_id
-        LEFT JOIN reminders r ON r.task = t.id
+        LEFT JOIN reminders r ON r.task = t.id AND r.user_id = tt.user_id
         WHERE tt.user_id = ?
         "#,
             id
@@ -111,12 +111,19 @@ impl Db {
         Ok(group_map.into_values().collect())
     }
 
-    pub async fn add_reminder(&self, task_id: i64, when: chrono::Duration) -> Result {
+    pub async fn add_reminder(
+        &self,
+        task_id: i64,
+        user_id: UserId,
+        when: chrono::Duration,
+    ) -> Result {
         let secs = when.num_seconds();
+        let id: i64 = user_id.into();
         sqlx::query!(
-            r#"INSERT INTO reminders (task, when_unixtimestamp) VALUES (?, ?)"#,
+            r#"INSERT INTO reminders (task, when_unixtimestamp, user_id) VALUES (?, ?, ?)"#,
             task_id,
-            secs
+            secs,
+            id
         )
         .execute(&self.pool)
         .await?;

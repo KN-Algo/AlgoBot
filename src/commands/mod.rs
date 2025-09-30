@@ -3,6 +3,7 @@ pub mod interactive_test;
 pub mod modal_test;
 pub mod ping;
 
+pub mod add_custom_event;
 pub mod add_task;
 pub mod events;
 pub mod given_tasks;

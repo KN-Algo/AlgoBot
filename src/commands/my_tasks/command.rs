@@ -115,7 +115,9 @@ impl ReminderHandlerTrait for ReminderHandler {
 
     async fn handle_submit(ctx: &mut EventCtx) -> Result {
         let state = ctx.msg.clone_state::<ReminderState>().await.unwrap();
-        ctx.db.add_reminder(state.task_id, state.when).await?;
+        ctx.db
+            .add_reminder(state.task_id, ctx.interaction.user.id, state.when)
+            .await?;
         ctx.update_msg::<EmptyMsg<EmptyHander>>().await?;
         ctx.msg.stop();
         Ok(())
