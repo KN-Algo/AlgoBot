@@ -1,6 +1,6 @@
 use chrono::{DateTime, TimeZone, Utc};
 use serenity::all::UserId;
-use sqlx::{Acquire, Row};
+use sqlx::Row;
 use sqlx::{Pool, Sqlite};
 use std::collections::HashMap;
 

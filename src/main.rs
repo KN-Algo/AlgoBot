@@ -56,8 +56,8 @@ async fn main() {
         .register_command("add_task", AddTaskCommand)
         .register_command("my_tasks", MyTasksCommand)
         .register_command("add_event", AddEventCommand)
-        .register_command("given_tasks", GivenTasksCommand)
-        .register_command("remind_events", RemindEventsCommand);
+        .register_command("reminders", RemindEventsCommand)
+        .register_command("given_tasks", GivenTasksCommand);
 
     let mut client = match Client::builder(token, intents).event_handler(handler).await {
         Ok(c) => {

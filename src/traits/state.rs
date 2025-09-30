@@ -9,7 +9,7 @@ pub trait StateTrait: Clone {
 
 #[async_trait]
 impl StateTrait for () {
-    async fn init(ctx: &CommandCtx) -> TypedResult<Self> {
+    async fn init(_ctx: &CommandCtx) -> TypedResult<Self> {
         Ok(())
     }
 }

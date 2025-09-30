@@ -15,7 +15,7 @@ pub struct RemindEventsCommand;
 pub struct State {
     pub reminders: Vec<EventReminder>,
     pub page: u8,
-    pub max_page: usize,
+    pub max_page: u8,
 }
 
 #[async_trait]
@@ -29,7 +29,7 @@ impl StateTrait for State {
         Ok(Self {
             reminders,
             page: 0,
-            max_page: 2,
+            max_page: 3,
         })
     }
 }
@@ -52,13 +52,13 @@ impl StateTrait for SelectState {
 }
 
 interactive_msg! {
-    <RemindersMsg handler=RemindersHandler>
+    <RemindersMsg handler=RemindersHandler state=State ephemeral=true>
         <embed>Embed</embed>
         <row>
             <button id="prev">"<"</button>
-            <button id="next">">"</button>
             <button id="add" style="secondary">"+"</button>
             <button id="delete" style="danger">"<"</button>
+            <button id="next">">"</button>
         </row>
     </RemindersMsg>
 }
@@ -67,7 +67,7 @@ interactive_msg! {
     <AddRemindEventsMsg handler=AddHandler state=SelectState ephemeral=true>
         <text>"Select reminder type:"</text>
         <row>
-            <selection id="selection" options=ReminderWay max_values=2></selection>
+            <selection id="selection" options=ReminderWay max_values=3></selection>
         </row>
         <row>
             <button id="submit">"Add"</button>
@@ -79,7 +79,7 @@ interactive_msg! {
     <DeleteRemindMsg handler=DeleteHandler state=SelectState ephemeral=true>
         <text>"Select reminder type:"</text>
         <row>
-            <selection id="selection" options=ReminderWay></selection>
+            <selection id="selection" options=ReminderWay max_values=3></selection>
         </row>
         <row>
             <button id="delete">"Delete"</button>
@@ -105,11 +105,11 @@ modal_macro::modal! {
 impl DeleteHandlerTrait for DeleteHandler {
     async fn handle_delete(ctx: &mut EventCtx) -> Result {
         let state = ctx.msg.clone_state::<SelectState>().await.unwrap();
-        /*
-                ctx.db
-                    .delete_event_reminder(ctx.interaction.user.id, state.group, state.way)
-                    .await?;
-        */
+        for way in state.selection {
+            ctx.db
+                .delete_event_reminder(ctx.interaction.user.id, state.group, way)
+                .await?;
+        }
         ctx.msg.stop();
         ctx.update_msg::<EmptyMsg<EmptyHandler>>().await
     }
@@ -122,40 +122,100 @@ impl AddHandlerTrait for AddHandler {
     async fn handle_submit(ctx: &mut EventCtx) -> Result {
         let state = ctx.msg.clone_state::<SelectState>().await.unwrap();
         crate::log!("{:?}", state.selection);
-        /*
-        match state.way {
-            ReminderWay::Email => {
-                let result = ctx.modal::<EmailModal>().await?;
-                if misc::verify_email(&result.email) {
-                    result.respond("Done!", true).await?;
-                    ctx.db
-                        .add_event_reminder(
-                            ctx.interaction.user.id,
-                            state.way,
-                            state.group,
-                            Some(result.email),
-                        )
-                        .await?;
-                } else {
-                    result.respond("Invalid Email!", true).await?;
+        for way in state.selection {
+            match way {
+                ReminderWay::Email => {
+                    let result = ctx.modal::<EmailModal>().await?;
+                    if misc::verify_email(&result.email) {
+                        result.respond("Done!", true).await?;
+                        ctx.db
+                            .add_event_reminder(
+                                ctx.interaction.user.id,
+                                way,
+                                state.group,
+                                Some(result.email),
+                            )
+                            .await?;
+                    } else {
+                        result.respond("Invalid Email!", true).await?;
+                    }
                 }
-            }
-            _ => {
-                ctx.db
-                    .add_event_reminder(ctx.interaction.user.id, state.way, state.group, None)
-                    .await?;
-                ctx.update_msg::<EmptyMsg<EmptyHandler>>().await?;
-            }
-        };*/
+                _ => {
+                    ctx.db
+                        .add_event_reminder(ctx.interaction.user.id, way, state.group, None)
+                        .await?;
+                    ctx.update_msg::<EmptyMsg<EmptyHandler>>().await?;
+                }
+            };
+        }
         ctx.msg.stop();
         Ok(())
     }
 }
 
 #[async_trait]
+impl RemindersHandlerTrait for RemindersHandler {
+    async fn handle_prev(ctx: &mut EventCtx) -> Result {
+        let mut state = ctx.msg.clone_state::<State>().await.unwrap();
+        if state.page == 0 {
+            state.page = state.max_page - 1;
+        } else {
+            state.page -= 1;
+        }
+
+        ctx.msg.write_state(state).await;
+        ctx.update_msg::<RemindersMsg<RemindersHandler>>().await
+    }
+
+    async fn handle_next(ctx: &mut EventCtx) -> Result {
+        let mut state = ctx.msg.clone_state::<State>().await.unwrap();
+        if state.max_page == 0 {
+            return ctx.acknowlage().await;
+        }
+
+        if state.page == state.max_page - 1 {
+            state.page = 0;
+        } else {
+            state.page += 1;
+        }
+
+        ctx.msg.write_state(state).await;
+        ctx.update_msg::<RemindersMsg<RemindersHandler>>().await
+    }
+
+    async fn handle_add(ctx: &mut EventCtx) -> Result {
+        let state = ctx.msg.clone_state::<State>().await.unwrap();
+        let mut msg =
+            InteractiveMessage::from_event::<AddRemindEventsMsg<AddHandler>, SelectState>(
+                ctx,
+                SelectState {
+                    group: ReminderGroup::from_u8(state.page).unwrap(),
+                    selection: vec![],
+                },
+            )
+            .await?;
+        msg.handle_events_from_event(ctx).await
+    }
+
+    async fn handle_delete(ctx: &mut EventCtx) -> Result {
+        let state = ctx.msg.clone_state::<State>().await.unwrap();
+        let mut msg =
+            InteractiveMessage::from_event::<DeleteRemindMsg<DeleteHandler>, SelectState>(
+                ctx,
+                SelectState {
+                    group: ReminderGroup::from_u8(state.page).unwrap(),
+                    selection: vec![],
+                },
+            )
+            .await?;
+        msg.handle_events_from_event(ctx).await
+    }
+}
+
+#[async_trait]
 impl BotCommand for RemindEventsCommand {
     async fn run(&self, ctx: &CommandCtx) -> Result {
-        let mut msg = InteractiveMessage::new::<AddRemindEventsMsg<AddHandler>>(ctx).await?;
+        let mut msg = InteractiveMessage::new::<RemindersMsg<RemindersHandler>>(ctx).await?;
         msg.handle_events(ctx).await
     }
 
