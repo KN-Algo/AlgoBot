@@ -4,7 +4,7 @@ use crate::{
     commands::{
         add_custom_event::command::AddEventCommand, add_task::AddTaskCommand,
         events::command::EventsCommand, given_tasks::GivenTasksCommand, my_tasks::MyTasksCommand,
-        remind_events::RemindEventsCommand, Ping,
+        remind_events::RemindEventsCommand, summaries::command::SummariesCommand, Ping,
     },
     database::Db,
     handler::Handler,
@@ -56,6 +56,7 @@ async fn main() {
         .register_command("add_task", AddTaskCommand)
         .register_command("my_tasks", MyTasksCommand)
         .register_command("add_event", AddEventCommand)
+        .register_command("summaries", SummariesCommand)
         .register_command("reminders", RemindEventsCommand)
         .register_command("given_tasks", GivenTasksCommand);
 

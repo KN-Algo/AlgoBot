@@ -47,6 +47,12 @@ CREATE TABLE custom_events (
     start INTEGER NOT NULL
 );
 
+CREATE TABLE summaries (
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    content TEXT NOT NULL,
+    author TEXT NOT NULL
+);
+
 CREATE INDEX idx_reminders_task ON reminders(task);
 CREATE INDEX idx_task_targets_user_id ON task_targets(user_id);
 

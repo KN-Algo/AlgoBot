@@ -57,7 +57,7 @@ interactive_msg! {
         <row>
             <button id="prev">"<"</button>
             <button id="add" style="secondary">"+"</button>
-            <button id="delete" style="danger">"<"</button>
+            <button id="delete" style="danger">"🗑️"</button>
             <button id="next">">"</button>
         </row>
     </RemindersMsg>

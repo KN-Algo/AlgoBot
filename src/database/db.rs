@@ -5,7 +5,7 @@ use sqlx::{Pool, Sqlite};
 use std::collections::HashMap;
 
 use crate::calendar::Event;
-use crate::database::ReminderGroup;
+use crate::database::{ReminderGroup, Summary};
 use crate::{
     aliases::{Result, TypedResult},
     database::{EventReminder, Reminder, ReminderWay, Task},
@@ -435,5 +435,36 @@ impl Db {
                     })
                     .collect()
             })?)
+    }
+
+    pub async fn get_summaries(&self) -> TypedResult<Vec<Summary>> {
+        Ok(sqlx::query_as!(Summary, r#"SELECT * FROM summaries"#)
+            .fetch_all(&self.pool)
+            .await?)
+    }
+
+    pub async fn add_summary(&self, content: &str, author: &str) -> Result {
+        sqlx::query!(
+            r#"INSERT INTO summaries (content, author) VALUES (?, ?)"#,
+            content,
+            author
+        )
+        .execute(&self.pool)
+        .await?;
+        Ok(())
+    }
+
+    pub async fn delete_summary(&self, summary: Summary) -> Result {
+        sqlx::query!(r#"DELETE FROM summaries WHERE id = ?"#, summary.id)
+            .execute(&self.pool)
+            .await?;
+        Ok(())
+    }
+
+    pub async fn clear_summaries(&self) -> Result {
+        sqlx::query!(r#"DELETE FROM summaries"#)
+            .execute(&self.pool)
+            .await?;
+        Ok(())
     }
 }

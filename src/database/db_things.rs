@@ -84,3 +84,10 @@ pub struct Task {
     pub reminders: Vec<Reminder>,
     pub assigned_users: Vec<UserId>,
 }
+
+#[derive(Clone, Debug, sqlx::Type)]
+pub struct Summary {
+    pub id: i64,
+    pub author: String,
+    pub content: String,
+}
