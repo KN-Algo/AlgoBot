@@ -32,49 +32,90 @@ pub fn derive_selection_state(input: proc_macro::TokenStream) -> proc_macro::Tok
         ).to_compile_error().into()
     }
 
-    let match_iter = fields.iter().map(|f| {
+    let mut user_id_fields = vec![];
+    let mut channel_id_fields = vec![];
+    let mut role_id_fields = vec![];
+    let mut generic_id_fields = vec![];
+    let mut other_fields = vec![];
+
+    for f in fields {
         let name = f.ident.as_ref().unwrap();
         let s = LitStr::new(&name.to_string(), name.span());
-        let err = syn::Error::new(f.ty.span(), "Needs to be a Vec<*Selection*>");
+        let err :proc_macro::TokenStream = syn::Error::new(f.ty.span(), "Needs to be a Vec<*Selection*>").into_compile_error().into();
         let path = match &f.ty {
-            Type::Path(TypePath { path, .. }) => Ok(path),
-            _ => Err(err.clone()),
-        }?;
+            Type::Path(TypePath { path, .. }) => path,
+            _ => return err,
+        };
 
         let segment = match path.segments.last() {
-                    Some(segment) => Ok(segment),
-                    None => Err(err.clone()),
-        }?;
+                    Some(segment) => segment,
+                    None => return err,
+        };
 
         if segment.ident != "Vec" {
-            return Err(err);
+            return err;
         }
 
         let inner_type = if let PathArguments::AngleBracketed(args) = &segment.arguments {
             if let Some(GenericArgument::Type(inner_type)) = args.args.first() {
                 inner_type
-            } else { return Err(err.clone()) }
-        } else { return Err(err) };
+            } else { return err }
+        } else { return err };
 
 
-        Ok(quote! { #s => self.#name = values.into_iter().map(|v| #inner_type::from_str(&v)).collect::<crate::aliases::TypedResult<Vec<#inner_type>>>()?, })
-    }).collect::<Result<TokenStream, syn::Error>>();
-
-    let match_iter = match match_iter {
-        Ok(i) => i,
-        Err(e) => return e.into_compile_error().into(),
-    };
-
+        if let Type::Path(TypePath { path, .. }) = inner_type {
+                if let Some(segment) = path.segments.last() {
+                    match segment.ident.to_string().as_str() {
+                        "UserId" => user_id_fields.push(quote! { #s => self.#name = values.clone(), }),
+                        "ChanelId" => channel_id_fields.push(quote! { #s => self.#name = values.clone(), }),
+                        "RoleId" => role_id_fields.push(quote! { #s => self.#name = values.clone(), }),
+                        "GenericId" => generic_id_fields.push(quote! { #s => self.#name = values.clone(), }),
+                        _ => other_fields.push(quote! { #s => self.#name = values.into_iter().map(|v| #inner_type::from_str(&v)).collect::<crate::aliases::TypedResult<Vec<#inner_type>>>()?, }),
+                    }
+                }
+            }
+    }
 
 
     let code = quote! { 
         impl #struct_name {
             pub fn set_selection_state(&mut self, interaction: &::serenity::all::ComponentInteraction) -> crate::aliases::Result {
-                if let ::serenity::all::ComponentInteractionDataKind::StringSelect { ref values } = interaction.data.kind {
-                    match interaction.data.custom_id.as_str() {
-                        #match_iter
-                        _ => return Err(crate::error::BotError::Serenity(::serenity::Error::Other("Unknown custom_id!")))
+                match interaction.data.kind {
+                    ::serenity::all::ComponentInteractionDataKind::StringSelect { ref values } => {
+                        match interaction.data.custom_id.as_str() {
+                            #(#other_fields)*
+                            _ => return Err(crate::error::BotError::Serenity(::serenity::Error::Other("Unknown custom_id!")))
+                        }
                     }
+
+                    ::serenity::all::ComponentInteractionDataKind::UserSelect { ref values } => {
+                        match interaction.data.custom_id.as_str() {
+                            #(#user_id_fields)*
+                            _ => return Err(crate::error::BotError::Serenity(::serenity::Error::Other("Unknown custom_id!")))
+                        }
+                    }
+
+                    ::serenity::all::ComponentInteractionDataKind::RoleSelect { ref values } => {
+                        match interaction.data.custom_id.as_str() {
+                            #(#role_id_fields)*
+                            _ => return Err(crate::error::BotError::Serenity(::serenity::Error::Other("Unknown custom_id!")))
+                        }
+                    }
+
+                    ::serenity::all::ComponentInteractionDataKind::ChannelSelect { ref values } => {
+                        match interaction.data.custom_id.as_str() {
+                            #(#channel_id_fields)*
+                            _ => return Err(crate::error::BotError::Serenity(::serenity::Error::Other("Unknown custom_id!")))
+                        }
+                    }
+
+                    ::serenity::all::ComponentInteractionDataKind::MentionableSelect { ref values } => {
+                        match interaction.data.custom_id.as_str() {
+                            #(#generic_id_fields)*
+                            _ => return Err(crate::error::BotError::Serenity(::serenity::Error::Other("Unknown custom_id!")))
+                        }
+                    }
+                    _ => return Err(crate::error::BotError::Serenity(::serenity::Error::Other("Unknown interaction type!")))
                 }
                 Ok(())
             }

@@ -32,8 +32,8 @@ impl BotCommand for AddTaskCommand {
             Ok(d) => d,
             Err(_) => return result.respond("Invalid date!", true).await,
         };
-        let mut task = ctx
-            .db
+
+        ctx.db
             .add_task(
                 &result.title,
                 &result.description,
@@ -42,8 +42,7 @@ impl BotCommand for AddTaskCommand {
             )
             .await?;
 
-        crate::add_users_to_task_from_msg!(result, ctx, ctx.interaction.user.id, task);
-        Ok(())
+        result.respond("Done!", true).await
     }
 
     fn register(&self, create: CreateCommand) -> CreateCommand {

@@ -11,9 +11,13 @@ use crate::{
 
 #[derive(Selection, Clone, Debug)]
 enum ReminderWhen {
+    #[select_value("1 Day Before")]
     OneDay,
+    #[select_value("2 Days Before")]
     TwoDays,
+    #[select_value("3 Days Before")]
     ThreeDays,
+    #[select_value("5 Days Before")]
     FiveDays,
 }
 
@@ -82,7 +86,7 @@ interactive_msg! {
 interactive_msg! {
     <AddReminderMsg handler=ReminderHandler state=ReminderState ephemeral=true>
         <row>
-            <selection id="when_selection" options=ReminderWhen max_values=4></selection>
+            <selection id="when_selection" style=String options=ReminderWhen max_values=4></selection>
         </row>
         <row>
             <button id="submit">"Ok"</button>
@@ -124,6 +128,9 @@ impl ReminderHandlerTrait for ReminderHandler {
 impl HandlerTrait for Handler {
     async fn handle_prev(ctx: &mut EventCtx) -> Result {
         let mut state = ctx.msg.clone_state::<State>().await.unwrap();
+        if state.max_page == 0 {
+            return ctx.acknowlage().await;
+        }
         if state.page == 0 {
             state.page = state.max_page - 1;
         } else {

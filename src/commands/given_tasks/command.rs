@@ -1,5 +1,8 @@
-use modal_macro::{interactive_msg, modal};
-use serenity::{all::CreateCommand, async_trait};
+use modal_macro::{interactive_msg, modal, SelectionState};
+use serenity::{
+    all::{CreateCommand, UserId},
+    async_trait,
+};
 
 use crate::{
     aliases::{Result, TypedResult},
@@ -60,10 +63,60 @@ interactive_msg! {
     </GivenTasksMsg>
 }
 
+#[derive(SelectionState, Clone)]
+struct AddUserState {
+    pub task_id: i64,
+    #[selection_state]
+    pub users: Vec<UserId>,
+}
+
+#[async_trait]
+impl StateTrait for AddUserState {
+    async fn init(_ctx: &CommandCtx) -> TypedResult<Self> {
+        Ok(Self {
+            task_id: 0,
+            users: vec![],
+        })
+    }
+}
+
+interactive_msg! {
+    <AddUsers handler=AddUserHandler state=AddUserState ephemeral=true>
+        <row>
+            <selection id="users" style=User max_values=25></selection>
+        </row>
+        <row>
+            <button id="submit">"Ok"</button>
+        </row>
+    </AddUsers>
+}
+
+interactive_msg! {
+    <EmptyMsg handler=EmptyHandler ephemeral=true>
+        <text>"Done!"</text>
+    </EmptyMsg>
+}
+
+impl EmptyHandlerTrait for EmptyHandler {}
+
+#[async_trait]
+impl AddUserHandlerTrait for AddUserHandler {
+    async fn handle_submit(ctx: &mut EventCtx) -> Result {
+        let state = ctx.msg.clone_state::<AddUserState>().await.unwrap();
+        ctx.db.add_users_to_task(state.task_id, state.users).await?;
+        ctx.msg.stop();
+        ctx.update_msg::<EmptyMsg<EmptyHandler>>().await
+    }
+}
+
 #[async_trait]
 impl HandlerTrait for Handler {
     async fn handle_prev(ctx: &mut EventCtx) -> Result {
         let mut state = ctx.msg.clone_state::<State>().await.unwrap();
+        if state.max_page == 0 {
+            return ctx.acknowlage().await;
+        }
+
         if state.page == 0 {
             state.page = state.max_page - 1;
         } else {
@@ -90,16 +143,21 @@ impl HandlerTrait for Handler {
     }
 
     async fn handle_add_users(ctx: &mut EventCtx) -> Result {
-        let mut state = ctx.msg.clone_state::<State>().await.unwrap();
-        let task = match state.tasks.get_mut(state.page) {
+        let state = ctx.msg.clone_state::<State>().await.unwrap();
+        let task = match state.tasks.get(state.page) {
             None => return ctx.acknowlage().await,
             Some(t) => t,
         };
 
-        crate::add_users_to_task_from_msg!(ctx, ctx, ctx.interaction.user.id, task);
-
-        ctx.msg.write_state::<State>(state).await;
-        Ok(())
+        let mut msg = InteractiveMessage::from_event::<AddUsers<AddUserHandler>, AddUserState>(
+            ctx,
+            AddUserState {
+                users: vec![],
+                task_id: task.id,
+            },
+        )
+        .await?;
+        msg.handle_events_from_event(ctx).await
     }
 
     async fn handle_edit(ctx: &mut EventCtx) -> Result {

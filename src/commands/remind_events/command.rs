@@ -67,7 +67,7 @@ interactive_msg! {
     <AddRemindEventsMsg handler=AddHandler state=SelectState ephemeral=true>
         <text>"Select reminder type:"</text>
         <row>
-            <selection id="selection" options=ReminderWay max_values=3></selection>
+            <selection id="selection" style=String options=ReminderWay max_values=3></selection>
         </row>
         <row>
             <button id="submit">"Add"</button>
@@ -79,7 +79,7 @@ interactive_msg! {
     <DeleteRemindMsg handler=DeleteHandler state=SelectState ephemeral=true>
         <text>"Select reminder type:"</text>
         <row>
-            <selection id="selection" options=ReminderWay max_values=3></selection>
+            <selection id="selection" style=String options=ReminderWay max_values=3></selection>
         </row>
         <row>
             <button id="delete">"Delete"</button>
