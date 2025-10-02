@@ -56,6 +56,10 @@ interactive_msg! {
 impl HandlerTrait for Handler {
     async fn handle_prev(ctx: &mut EventCtx) -> Result {
         let mut state = ctx.msg.clone_state::<State>().await.unwrap();
+        if state.max == 0 {
+            return ctx.acknowlage().await;
+        }
+
         if state.page == 0 {
             state.page = state.max - 1;
         } else {

@@ -29,7 +29,11 @@ impl Embed {
     async fn create(state: &State) -> CreateEmbed {
         let embed = Self::into_embed();
         let embed = match state.events.get(state.page) {
-            None => embed.field("Event", "No events", false),
+            None => {
+                return embed
+                    .field("Event", "No events", false)
+                    .footer(CreateEmbedFooter::new("0/0"))
+            }
             Some(event) => Self::format_event(embed, event),
         };
 
