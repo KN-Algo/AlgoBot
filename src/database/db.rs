@@ -331,6 +331,20 @@ impl Db {
         Ok(())
     }
 
+    pub async fn delete_expired_custom_events(&self) -> Result {
+        let now = Utc::now().timestamp();
+        sqlx::query!(
+            r#"
+            DELETE FROM custom_events
+            WHERE start < ?
+            "#,
+            now
+        )
+        .execute(&self.pool)
+        .await?;
+        Ok(())
+    }
+
     pub async fn add_event_reminder(
         &self,
         discord_id: UserId,
