@@ -1,5 +1,6 @@
 use std::{sync::Arc, time::Duration};
 
+use chrono::Utc;
 use tokio::{sync::Mutex, sync::RwLock, time::Instant};
 
 use crate::{
@@ -36,7 +37,13 @@ impl CalendarHub {
             Ok(v) => match v {
                 Ok(r) => match r {
                     Ok(mut c) => {
-                        c.iter_mut().for_each(|cal| cal.events.sort_unstable());
+                        let now = Utc::now();
+                        c.iter_mut().for_each(|cal| {
+                            cal.events.retain(|event| {
+                                event.summary.contains("--BOT--") && event.start > now
+                            });
+                            cal.events.sort_unstable()
+                        });
                         c.into_iter().map(Arc::new).collect()
                     }
                     Err(e) => {
