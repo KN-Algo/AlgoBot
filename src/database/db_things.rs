@@ -68,7 +68,6 @@ impl ReminderGroup {
 
 #[derive(Debug, sqlx::FromRow, Clone)]
 pub struct EventReminder {
-    pub id: i64,
     pub user_id: UserId,
     pub way: ReminderWay,
     pub email: Option<String>,

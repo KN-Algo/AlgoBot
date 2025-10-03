@@ -356,7 +356,7 @@ impl Db {
         self.insert_user(discord_id).await?;
         sqlx::query!(
             r#"
-                INSERT INTO event_reminders (user_id, way, email, reminder_group)
+                INSERT OR IGNORE INTO event_reminders (user_id, way, email, reminder_group)
                 VALUES (?, ?, ?, ?)
                 "#,
             id,
@@ -394,12 +394,11 @@ impl Db {
         user_id: UserId,
     ) -> TypedResult<Vec<EventReminder>> {
         let id: i64 = user_id.into();
-        Ok(sqlx::query!(r#"SELECT id, user_id, way as "way: ReminderWay", reminder_group as "rgroup: ReminderGroup", email FROM event_reminders WHERE user_id = ?"#, id)
+        Ok(sqlx::query!(r#"SELECT user_id, way as "way: ReminderWay", reminder_group as "rgroup: ReminderGroup", email FROM event_reminders WHERE user_id = ?"#, id)
                 .fetch_all(&self.pool)
                 .await?
                 .into_iter()
                 .map(|record| EventReminder {
-                    id: record.id,
                     user_id: UserId::new(record.user_id.try_into().unwrap()),
                     way: record.way,
                     email: record.email,
@@ -409,13 +408,12 @@ impl Db {
 
     pub async fn fetch_event_reminders(&self) -> TypedResult<Vec<EventReminder>> {
         Ok(sqlx::query!(
-            r#"SELECT id, user_id, way as "way: ReminderWay", email, reminder_group as "rgroup: ReminderGroup" FROM event_reminders"#
+            r#"SELECT user_id, way as "way: ReminderWay", email, reminder_group as "rgroup: ReminderGroup" FROM event_reminders"#
         )
         .fetch_all(&self.pool)
         .await?
         .into_iter()
         .map(|record| EventReminder {
-            id: record.id,
             user_id: UserId::new(record.user_id.try_into().unwrap()),
             way: record.way,
             email: record.email,

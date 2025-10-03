@@ -120,34 +120,43 @@ impl EmptyHandlerTrait for EmptyHandler {}
 #[async_trait]
 impl AddHandlerTrait for AddHandler {
     async fn handle_submit(ctx: &mut EventCtx) -> Result {
-        let state = ctx.msg.clone_state::<SelectState>().await.unwrap();
-        crate::log!("{:?}", state.selection);
-        for way in state.selection {
-            match way {
-                ReminderWay::Email => {
-                    let result = ctx.modal::<EmailModal>().await?;
-                    if misc::verify_email(&result.email) {
-                        result.respond("Done!", true).await?;
-                        ctx.db
-                            .add_event_reminder(
-                                ctx.interaction.user.id,
-                                way,
-                                state.group,
-                                Some(result.email),
-                            )
-                            .await?;
-                    } else {
-                        result.respond("Invalid Email!", true).await?;
-                    }
-                }
-                _ => {
-                    ctx.db
-                        .add_event_reminder(ctx.interaction.user.id, way, state.group, None)
-                        .await?;
-                    ctx.update_msg::<EmptyMsg<EmptyHandler>>().await?;
-                }
-            };
+        let mut state = ctx.msg.clone_state::<SelectState>().await.unwrap();
+        let mut responded = false;
+
+        if let Some(i) = state
+            .selection
+            .iter()
+            .position(|s| matches!(s, ReminderWay::Email))
+        {
+            let way = state.selection.remove(i);
+            responded = true;
+
+            let result = ctx.modal::<EmailModal>().await?;
+            if misc::verify_email(&result.email) {
+                result.respond("Done!", true).await?;
+                ctx.db
+                    .add_event_reminder(
+                        ctx.interaction.user.id,
+                        way,
+                        state.group,
+                        Some(result.email),
+                    )
+                    .await?;
+            } else {
+                result.respond("Invalid Email!", true).await?;
+            }
         }
+
+        for way in state.selection {
+            ctx.db
+                .add_event_reminder(ctx.interaction.user.id, way, state.group, None)
+                .await?;
+        }
+
+        if !responded {
+            ctx.update_msg::<EmptyMsg<EmptyHandler>>().await?;
+        }
+
         ctx.msg.stop();
         Ok(())
     }
