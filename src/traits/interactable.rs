@@ -29,7 +29,7 @@ pub trait Interactable<'ctx> {
 
     fn respond(&self, msg: impl IntoResponse, ephemeral: bool) -> impl Future<Output = Result> {
         async move {
-            CreateInteractionResponse::Message(msg.into_msg().ephemeral(ephemeral))
+            CreateInteractionResponse::Message(msg.into_response().ephemeral(ephemeral))
                 .execute(self.discord_ctx(), self.id_token())
                 .await?;
             Ok(())
@@ -45,7 +45,7 @@ pub trait Interactable<'ctx> {
         async move {
             let discord_ctx = self.discord_ctx();
             let (id, token) = self.id_token();
-            CreateInteractionResponse::Message(msg.into_msg())
+            CreateInteractionResponse::Message(msg.into_response())
                 .execute(discord_ctx, (id, token))
                 .await?;
             let mut iteraction_response = discord_ctx
@@ -80,7 +80,7 @@ pub trait Interactable<'ctx> {
 
     fn edit(&self, msg: impl IntoResponse) -> impl Future<Output = Result> {
         async move {
-            CreateInteractionResponse::UpdateMessage(msg.into_msg())
+            CreateInteractionResponse::UpdateMessage(msg.into_response())
                 .execute(self.discord_ctx(), self.id_token())
                 .await?;
             Ok(())

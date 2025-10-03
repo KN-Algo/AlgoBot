@@ -13,7 +13,7 @@ pub trait IntoEmbed {
 }
 
 impl<T: IntoEmbed> IntoResponse for T {
-    fn into_msg(&self) -> serenity::all::CreateInteractionResponseMessage {
+    fn into_response(&self) -> serenity::all::CreateInteractionResponseMessage {
         CreateInteractionResponseMessage::new().embed(T::into_embed())
     }
 }

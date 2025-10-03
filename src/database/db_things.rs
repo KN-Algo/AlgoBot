@@ -2,7 +2,9 @@ use std::fmt::Display;
 
 use chrono::Utc;
 use modal_macro::Selection;
-use serenity::all::UserId;
+use serenity::all::{ChannelId, Http, UserId};
+
+use crate::{aliases::Result, traits::IntoMessage};
 
 #[derive(Debug, Clone)]
 pub struct Reminder {
